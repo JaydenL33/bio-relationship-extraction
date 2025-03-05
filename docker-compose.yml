@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    container_name: pgvector_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=pgvector_user
+      - POSTGRES_PASSWORD=SuperSecretTestPassword
+      - POSTGRES_DB=vector_db
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgvector_user -d vector_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgvector_data:
