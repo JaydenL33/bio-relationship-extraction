@@ -1,36 +1,57 @@
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core import Settings
+import os
 
-# Model ID from Hugging Face
-model_id = "meta-llama/Llama-3.2-3B-Instruct"
+# Initialize FastAPI app
+app = FastAPI(title="RAG API with LlamaIndex")
 
-# Load tokenizer and model
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    torch_dtype=torch.bfloat16,  # Use bfloat16 for efficiency
-    device_map="auto"  # Automatically map to available GPU/CPU
-)
+# Pydantic model for request body
+class QueryRequest(BaseModel):
+    query: str
 
-# Prepare the input prompt
-messages = [
-    {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": "Hello! Can you tell me what Llama 3.2 is?"}
-]
+# Set up LlamaIndex embedding model (BAAI/bge-small-en-v1.5)
+Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
 
-# Apply chat template and tokenize
-input_text = tokenizer.apply_chat_template(messages, tokenize=False)
-inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
+# Load documents and create index (assuming a 'data' folder exists)
+def load_index():
+    data_dir = "./data"
+    if not os.path.exists(data_dir) or not os.listdir(data_dir):
+        raise ValueError("Data directory is empty or does not exist.")
+    documents = SimpleDirectoryReader(data_dir).load_data()
+    return VectorStoreIndex.from_documents(documents)
 
-# Generate response
-outputs = model.generate(
-    **inputs,
-    max_new_tokens=200,
-    do_sample=True,
-    temperature=0.7,
-    top_p=0.9
-)
+# Global index variable (loaded once at startup)
+index = None
 
-# Decode and print the response
-response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print("Assistant:", response[len(input_text):].strip())
+@app.on_event("startup")
+async def startup_event():
+    global index
+    try:
+        index = load_index()
+        print("Index loaded successfully.")
+    except Exception as e:
+        print(f"Failed to load index: {e}")
+
+# Root endpoint
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the RAG API"}
+
+# Query endpoint
+@app.post("/query")
+async def query_documents(request: QueryRequest):
+    if index is None:
+        raise HTTPException(status_code=500, detail="Index not initialized.")
+    try:
+        query_engine = index.as_query_engine()
+        response = query_engine.query(request.query)
+        return {"query": request.query, "response": str(response)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  llm_dev:
+    build: .  # Or use "image: pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel" if using a prebuilt image
+    container_name: llm_dev_container
+    runtime: nvidia  # Ensure NVIDIA runtime is used
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ipc: host  # Equivalent to --ipc=host
+    ulimits:
+      memlock: -1  # Equivalent to --ulimit memlock=-1
+      stack: 67108864  # Equivalent to --ulimit stack=67108864
+    volumes:
+      - .:/workspace  # Mount your local directory inside the container
+    working_dir: /workspace
+    command: "/bin/bash"  # Start a shell in the container
   db:
     image: ankane/pgvector:latest
     container_name: pgvector_db
