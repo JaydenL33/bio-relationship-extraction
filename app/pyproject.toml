@@ -15,7 +15,6 @@ dependencies = [
     "transformers (>=4.49.0,<5.0.0)",
     "accelerate (>=1.4.0,<2.0.0)",
     "nvidia-cuda-runtime-cu12 (>=12.8,<13.0)",
-    "torch (>=2.7.0.dev20250305,<3.0.0)",
     "llama-index-embeddings-huggingface (>=0.5.2,<0.6.0)",
     "llama-index-embeddings-instructor (>=0.3.0,<0.4.0)",
     "fastapi (>=0.115.12,<0.116.0)",
@@ -26,11 +25,6 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[[tool.poetry.source]]
-name = "pytorch-nightly"
-url = "https://download.pytorch.org/whl/nightly/cu128"
-priority = "explicit"
 
 
 [tool.poetry.dependencies]
