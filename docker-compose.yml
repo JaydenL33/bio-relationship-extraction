@@ -1,51 +1,24 @@
 version: '3.8'
 
 services:
-  llm_dev:
-    build:  # Or use "image: pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel" if using a prebuilt image
-      context: .
-      target: development  # Use the development stage
-    container_name: llm_dev_container
-    runtime: nvidia  # Ensure NVIDIA runtime is used
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - FASTAPI_ENV=development
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    ipc: host  # Equivalent to --ipc=host
-    ulimits:
-      memlock: -1  # Equivalent to --ulimit memlock=-1
-      stack: 67108864  # Equivalent to --ulimit stack=67108864
-    volumes:
-      - ./app:/app  # Mounts your local app directory to /app in the container for live code changes
-    working_dir: /app
-    command: ["uvicorn", "--reload", "main:app", "--host", "0.0.0.0", "--port", "8000"]  # Overrides the CMD for development
-    ports:
-      - "8000:8000"  # Exposes the container's port 8000 to the host
-
-  db:
+  pgvector_db:
     image: ankane/pgvector:latest
     container_name: pgvector_db
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_USER=pgvector_user
-      - POSTGRES_PASSWORD=SuperSecretTestPassword
-      - POSTGRES_DB=vector_db
+      POSTGRES_USER: pgvector_user
+      POSTGRES_PASSWORD: SuperSecretTestPassword
+      POSTGRES_DB: vector_db
     volumes:
       - pgvector_data:/var/lib/postgresql/data
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pgvector_user -d vector_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
 volumes:
   pgvector_data:
+    driver: local
