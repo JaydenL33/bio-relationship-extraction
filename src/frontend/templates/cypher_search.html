@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<h2>Search</h2>
+{% from "_formhelpers.html" import render_field %}
+<p> Search the database using a CYPHER query </p>
+
+<form method="post">
+  <dl class="post__fields">
+    Query:
+    {{ render_field(form.search) }}
+  </dl>
+
+  <p><input type="submit" value="Search"></p>
+</form>
+
+<br>
+
+
+<h3>Search results</h3>
+{% include "display_posts_cypher.html" %}
+
+{% endblock %}

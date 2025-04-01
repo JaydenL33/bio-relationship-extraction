@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Chemical relationship search</title>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+<div class="page">
+  <h1>Chemical relationship search</h1>
+  <div class="metanav">
+  <a href="{{ url_for('index') }}">Search</a>
+  <a href="{{ url_for('CYPHER') }}">CYPHER Query</a>
+  </div>
+  {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+  {% endfor %}
+  {% block body %}{% endblock %}
+</div>

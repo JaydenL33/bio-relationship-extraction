@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<h2>Search</h2>
+{% from "_formhelpers.html" import render_field %}
+<p>Searches are performed by searching for nodes and/or relationships in the form</p>
+<p>(node 1)-[relationship 1]->(node 2)-[relationship 2]->(node 3)</p>
+<p>For 2 node relationships use the <a href="{{ url_for('index')}}"> default search</a></p>
+
+<p>Please select at least one type/search term below:</p>
+
+
+<form method="post">
+  <dl class="post__fields">
+    {{ render_field(form.node_1_type) }}
+    {{ render_field(form.relationship_type_1) }}
+    {{ render_field(form.node_2_type) }}
+    {{ render_field(form.relationship_type_2) }}
+    {{ render_field(form.node_3_type) }}
+  </dl>
+  <dl class="post__fields">
+    Node 1 search:
+    {{ render_field(form.search_1) }}
+    Node 2 search:
+    {{ render_field(form.search_2) }}
+    Node 3 search:
+    {{ render_field(form.search_3) }}
+  </dl>
+  <dl class="post__fields">
+    {{ render_field(form.search_1_exact) }}
+    {{ render_field(form.search_2_exact) }}
+    {{ render_field(form.search_3_exact) }}
+  </dl>
+
+  <p><input type="submit" value="Search"></p>
+</form>
+
+<br>
+
+
+
+<h3>Search results</h3>
+{% include "display_posts_3.html" %}
+
+{% endblock %}

@@ -1,0 +1,15 @@
+<ul class="results">
+{% if results | length > 0 %}
+    {% for results_part in results %}
+      <h3>{{results_part.iloc[0,1]}} to {{results_part.iloc[0,6]}} to {{results_part.iloc[0,11]}}</h3>
+      {% for row_index in range(results_part.shape[0]) %}
+        <p>
+          {{ results_part.iloc[row_index,0].capitalize()|safe }} {{ results_part.iloc[row_index,2] }} {{ results_part.iloc[row_index,5]|safe }} <a href="{{ results_part.iloc[row_index,3] }}">{{ results_part.iloc[row_index,4] }}</a>.
+          {{ results_part.iloc[row_index,5].capitalize()|safe }} {{ results_part.iloc[row_index,7] }} {{ results_part.iloc[row_index,10]|safe }} <a href="{{ results_part.iloc[row_index,8] }}">{{ results_part.iloc[row_index,9] }}</a>
+        </p>
+      {% endfor %}
+    {% endfor %}
+{% else %}
+  <li>No matches.
+{% endif %}
+</ul>

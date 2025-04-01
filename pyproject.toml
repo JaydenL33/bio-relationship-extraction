@@ -13,7 +13,11 @@ dependencies = [
     "llama-index-readers-file (>=0.4.7,<0.5.0)",
     "llama-index-llms-ollama (>=0.5.4,<0.6.0)",
     "llama-index-vector-stores-postgres (>=0.4.2,<0.5.0)",
-    "llama-index-embeddings-ollama (>=0.6.0,<0.7.0)"
+    "llama-index-embeddings-ollama (>=0.6.0,<0.7.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "gunicorn (>=23.0.0,<24.0.0)",
+    "flask (>=3.1.0,<4.0.0)",
+    "wtforms (>=3.2.1,<4.0.0)"
 ]
 
 

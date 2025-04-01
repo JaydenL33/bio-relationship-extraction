@@ -4,6 +4,18 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 import psycopg2
 
+# Base URL
+
+# This is because I am hosting ollama locally
+# on my machine and I want to use the ollama API
+# to access the models
+# Ollama API base URL
+# I had to change oLLama to run on 0.0.0.0 (all interfaces)
+# to access it from the host machine
+# This is the IP address of my host machine within the WSL environment (found via ifconfig)
+# and the port number I used to run ollama
+base_url = "172.20.80.1:11434"
+
 # Database configuration
 DB_CONFIG = {
     "dbname": "vector_db",
@@ -18,13 +30,13 @@ def setup_models():
     # Embedding model (bge-m3)
     Settings.embed_model = OllamaEmbedding(
         model_name="bge-m3:latest",
-        base_url="http://localhost:11434"
+        base_url="http://172.20.80.1:11434"
     )
     
     # LLM model (llama3.2)
     Settings.llm = Ollama(
         model="llama3.2:latest",
-        base_url="http://localhost:11434",
+        base_url="http://172.20.80.1:11434",
         request_timeout=300.0
     )
 
@@ -111,12 +123,16 @@ if __name__ == "__main__":
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
+        # Install pgvector extension
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public;")
+        # Create the table for document embeddings
         cur.execute("""
             CREATE TABLE IF NOT EXISTS document_embeddings (
                 id UUID PRIMARY KEY,
                 content TEXT,
                 metadata JSONB,
-                embedding VECTOR(1024)
+                embedding vector(1024)
             );
         """)
         conn.commit()

@@ -1,0 +1,8 @@
+<ul class="results">
+{% if results | length > 0 %}
+    <h2>CYPHER query results</h2>
+    {{ results|safe }}
+{% else %}
+  <li>No matches.
+{% endif %}
+</ul>

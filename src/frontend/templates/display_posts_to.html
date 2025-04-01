@@ -1,0 +1,22 @@
+{% if results_from | length > 0 %}
+<h4>Relationships from {{chem}}</h4>
+<ul class="results_from">
+  {% for row_index in range(results_from.shape[0]) %}
+    <li>{{ results_from.iloc[row_index,0] }} {{ (results_from.iloc[row_index,1]).lower().replace('_', ' ') }}
+    <a href="{{ url_for('chems', chem_id=results_from.iloc[row_index,3]) }}">{{ results_from.iloc[row_index,3] }}</a>
+      (<a href="{{ results_from.iloc[row_index,2] }}">Pubmed source</a>)
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if results_to | length > 0 %}
+<h4>Relationships to {{chem}}</h4>
+<ul class="results_to">
+  {% for row_index in range(results_to.shape[0]) %}
+    <li>
+      <a href="{{ url_for('chems', chem_id=results_to.iloc[row_index,0]) }}">{{ results_to.iloc[row_index,0] }}</a>
+       {{ (results_to.iloc[row_index,1]).lower().replace('_', ' ') }}
+    {{ results_to.iloc[row_index,3] }} (<a href="{{ results_to.iloc[row_index,2] }}">Pubmed source</a>)
+  {% endfor %}
+</ul>
+{% endif %}
