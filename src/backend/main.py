@@ -1,4 +1,4 @@
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, PromptTemplate
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
@@ -14,6 +14,10 @@ import psycopg2
 # to access it from the host machine
 # This is the IP address of my host machine within the WSL environment (found via ifconfig)
 # and the port number I used to run ollama
+
+# Setup
+custom_prompt = PromptTemplate("We have provided context information below.\n---------------------\n{context_str}\n---------------------\nGiven this information, please answer the question: {query_str}\nIf the query is asking for metabolites, format the answer as 'organism->metabolites->list of metabolites->from->list of chemicals', otherwise answer normally.")
+
 base_url = "172.20.80.1:11434"
 
 # Database configuration
@@ -36,8 +40,7 @@ def setup_models():
     # LLM model (llama3.2)
     Settings.llm = Ollama(
         model="llama3.2:latest",
-        base_url="http://172.20.80.1:11434",
-        request_timeout=300.0
+        base_url="http://172.20.80.1:11434"
     )
 
 # Initialize pgvector database connection
@@ -78,13 +81,14 @@ def upload_documents(directory_path):
     return index
 
 # Query the database
-def query_documents(query_str, index):
+def query_documents(query_str: str, index: VectorStoreIndex):
     # Create query engine
     query_engine = index.as_query_engine(
         similarity_top_k=3,  # Return top 3 most similar documents
-        response_mode="compact"
+        response_mode="compact_accumulate",
+        qa_prompt=PromptTemplate
     )
-    
+    query_engine.update_prompts({"response_synthesizer:text_qa_template": custom_prompt})
     # Execute query
     response = query_engine.query(query_str)
     return response

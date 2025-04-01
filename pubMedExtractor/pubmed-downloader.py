@@ -8,8 +8,8 @@ from time import sleep
 
 def main():
     # user inputs what you want to search pubmed for
-    query = input("Enter the query keywords such as 'cyanobacteria' to bulk download abstracts? Enter your keyword(s):")
-    query2 = input("how many abstracts you need to download?")
+    query = input("Enter the query keywords such as 'cyanobacteria' to bulk download abstracts? Enter your keyword(s): ")
+    query2 = input("how many abstracts you need to download?: ")
 
     # if spaces were entered, replace them with %20 to make compatible with PubMed search
     query = query.replace(" ", "%20")
