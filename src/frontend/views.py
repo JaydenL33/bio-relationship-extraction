@@ -1,5 +1,4 @@
 from flask import request, redirect, render_template, flash, current_app as app
-from .models import *
 
 from .forms import TwoSearchForm, ThreeSearchForm, CypherSearchForm
 
@@ -22,14 +21,7 @@ def index():
         search_n1_exact = search.data['search_1_exact']
         search_n2_exact = search.data['search_2_exact']
 
-        # search the database
-        results = search_two(a_term = search_string_n1.lower(),
-                               a_type = search_n1_type,
-                               b_term = search_string_n2.lower(),
-                               b_type = search_n2_type,
-                               r1_type = search_type_r1,
-                               a_exact = search_n1_exact,
-                               b_exact = search_n2_exact)
+
 
         if len(results) < 1:
             flash('No results found!')
@@ -65,17 +57,7 @@ def search():
         search_n2_exact = search.data['search_2_exact']
         search_n3_exact = search.data['search_3_exact']
 
-        results = search_three(a_term = search_string_n1.lower(),
-                               a_type = search_n1_type,
-                               b_term = search_string_n2.lower(),
-                               b_type = search_n2_type,
-                               c_term = search_string_n3.lower(),
-                               c_type = search_n3_type,
-                               r1_type = search_type_r1,
-                               r2_type = search_type_r2,
-                               a_exact = search_n1_exact,
-                               b_exact = search_n2_exact,
-                               c_exact = search_n3_exact)
+
 
         if len(results) < 1:
             flash('No results found!')
@@ -99,7 +81,6 @@ def CYPHER():
     results = []
     if request.method == 'POST':
         search_cypher_string = search.data['search']
-        results = search_cypher(search_cypher_string).to_html()
         if len(results) < 1:
             flash('No results found!')
             return redirect('/')
@@ -113,10 +94,8 @@ def CYPHER():
 def chems(chem_id):
 
     results_from = []
-    results_from = search_relationships_from(chem_id, search_type="ALL")
 
     results_to = []
-    results_to = search_relationships_to(chem_id)
     results_to = results_to.loc[results_to['type(r)'] != "is associated with"]
     results_to = results_to.loc[results_to['type(r)'] != "binds with"]
 
