@@ -39,7 +39,7 @@ def setup_models():
     
     # LLM model (llama3.2)
     Settings.llm = Ollama(
-        model="llama3.2:latest",
+        model="DeepSeek-R1-Distill-Qwen-14B",
         base_url="http://172.20.80.1:11434"
     )
 
