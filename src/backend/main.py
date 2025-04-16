@@ -1,23 +1,13 @@
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, PromptTemplate
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, PromptTemplate, StorageContext
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 import psycopg2
 import os
 import shutil
+import uuid
 
-# Base URL
-
-# This is because I am hosting ollama locally
-# on my machine and I want to use the ollama API
-# to access the models
-# Ollama API base URL
-# I had to change oLLama to run on 0.0.0.0 (all interfaces)
-# to access it from the host machine
-# This is the IP address of my host machine within the WSL environment (found via ifconfig)
-# and the port number I used to run ollama
-
-# Setup
+# Custom prompt for querying
 custom_prompt = PromptTemplate(
     """This is a system prompt, for you:\n
     We have provided context information below.\n
@@ -47,7 +37,8 @@ custom_prompt = PromptTemplate(
     Neomycin is isolated from two different strains of Streptomyces bacteria: *Streptomyces rimosus forma paromomycinus* and *Streptomyces fradiae*\n
     If a query is asking for information that is not present in the context, please respond with "I don't know" or "Not found".\n""")
 
-base_url = "172.20.80.1:11434"
+# Ollama API base URL
+base_url = "http://172.20.80.1:11434"
 
 # Database configuration
 DB_CONFIG = {
@@ -59,24 +50,20 @@ DB_CONFIG = {
 }
 
 # Initialize Ollama models
-
-
 def setup_models():
     # Embedding model (bge-m3)
     Settings.embed_model = OllamaEmbedding(
         model_name="bge-m3:latest",
-        base_url="http://172.20.80.1:11434"
+        base_url=base_url
     )
 
-    # LLM model (llama3.2)
+    # LLM model (deepseek-r1)
     Settings.llm = Ollama(
         model="deepseek-r1:7b",
-        base_url="http://172.20.80.1:11434"
+        base_url=base_url
     )
 
 # Initialize pgvector database connection
-
-
 def init_vector_store():
     try:
         vector_store = PGVectorStore.from_params(
@@ -95,8 +82,6 @@ def init_vector_store():
         return None
 
 # Upload and embed documents
-
-
 def upload_documents(directory_path, processed_dir="./processed_documents"):
     # Create processed directory if it doesn't exist
     os.makedirs(processed_dir, exist_ok=True)
@@ -114,19 +99,15 @@ def upload_documents(directory_path, processed_dir="./processed_documents"):
         return False
 
     try:
-        # Create index with pgvector storage - properly configure storage context
-        storage_context = vector_store.get_storage_context()
+        # Create storage context with PGVectorStore
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
         
-        # Create index ensuring that we use the PostgreSQL vector store
+        # Create index with documents and storage context
         index = VectorStoreIndex.from_documents(
             documents,
-            vector_store=vector_store,
             storage_context=storage_context,
             show_progress=True
         )
-        
-        # No need to persist as the index is already stored in PostgreSQL
-        # index.storage_context.persist() - remove this line
         
         print(f"Successfully embedded {len(documents)} documents")
         
@@ -142,15 +123,14 @@ def upload_documents(directory_path, processed_dir="./processed_documents"):
     except Exception as e:
         print(f"Error embedding documents: {e}")
         return False
+
 # Query the database
-
-
 def query_documents(query_str: str, index: VectorStoreIndex):
     # Create query engine
     query_engine = index.as_query_engine(
         similarity_top_k=5,
         response_mode="compact",
-        qa_prompt=custom_prompt  # Use our custom prompt defined at the top
+        qa_prompt=custom_prompt
     )
     
     # Execute query and return response
@@ -165,25 +145,31 @@ def main():
     documents_dir = "./documents"
     processed_dir = "./processed_documents"
 
-    # Check if documents are already in the database
+    # Initialize vector store
     vector_store = init_vector_store()
     if not vector_store:
         print("Failed to initialize vector store")
         return
     
     try:
+        # Create storage context
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        
         # Try to load existing index
-        index = VectorStoreIndex.from_vector_store(vector_store)
+        index = VectorStoreIndex.from_vector_store(
+            vector_store=vector_store,
+            storage_context=storage_context
+        )
         print("Loaded existing document embeddings from database")
         
         # Check if there are new documents to embed
-        import os
         if os.path.exists(documents_dir) and any(os.scandir(documents_dir)):
             print("Found new documents to embed")
-            index = upload_documents(documents_dir, processed_dir)
-            if not index:
+            new_index = upload_documents(documents_dir, processed_dir)
+            if new_index:
+                index = new_index
+            else:
                 print("Failed to upload new documents")
-                return
     except Exception as e:
         print(f"No existing index found, creating new one: {e}")
         # Upload documents (first time embedding)
@@ -191,8 +177,6 @@ def main():
         if not index:
             print("Failed to upload documents")
             return
-
-    # Example queries
     while True:
         query = input("\nEnter your query (or 'quit' to exit): ")
         if query.lower() == 'quit':
@@ -204,7 +188,7 @@ def main():
             print("\nSources:")
             for node in response.source_nodes:
                 print(f"- {node.node.metadata.get('file_name', 'Unknown')}: "
-                      f"Score: {node.score:.3f}")
+                        f"Score: {node.score:.3f}")
         except Exception as e:
             print(f"Error processing query: {e}")
 
@@ -216,7 +200,6 @@ if __name__ == "__main__":
         cur = conn.cursor()
         # Install pgvector extension
         cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        cur.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public;")
         # Create the table for document embeddings
         cur.execute("""
             CREATE TABLE IF NOT EXISTS document_embeddings (
