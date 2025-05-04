@@ -6,7 +6,7 @@ authors = [
     {name = "Jayden.Lee@student.uts.edu.au"}
 ]
 readme = "README.md"
-requires-python = ">=3.12, <4.0"
+requires-python = ">=3.12, <3.13"
 dependencies = [
     "llama-index (>=0.12.26,<0.13.0)",
     "llama-index-core (>=0.12.27,<0.13.0)",
@@ -17,7 +17,7 @@ dependencies = [
     "pandas (>=2.2.3,<3.0.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
     "flask (>=3.1.0,<4.0.0)",
-    "wtforms (>=3.2.1,<4.0.0)"
+    "wtforms (>=3.2.1,<4.0.0)",
 ]
 
 
