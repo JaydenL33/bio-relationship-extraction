@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
 from typing import Optional
 
-from backend.main import query_documents
+from backend.services.query_documents import query_documents
+from backend.services.llm import index
 
 
 # Define a Pydantic model for request validation

@@ -39,6 +39,7 @@ def init_vector_store():
         print(f"Error connecting to database: {e}")
         return None
 
+
 def upload_documents(directory_path, processed_dir="./processed_documents"):
     os.makedirs(processed_dir, exist_ok=True)
     documents = SimpleDirectoryReader(directory_path).load_data()
