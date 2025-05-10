@@ -504,6 +504,51 @@ files = [
 ]
 
 [[package]]
+name = "elastic-transport"
+version = "8.17.1"
+description = "Transport classes and utilities shared among Python Elastic client libraries"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "elastic_transport-8.17.1-py3-none-any.whl", hash = "sha256:192718f498f1d10c5e9aa8b9cf32aed405e469a7f0e9d6a8923431dbb2c59fb8"},
+    {file = "elastic_transport-8.17.1.tar.gz", hash = "sha256:5edef32ac864dca8e2f0a613ef63491ee8d6b8cfb52881fa7313ba9290cac6d2"},
+]
+
+[package.dependencies]
+certifi = "*"
+urllib3 = ">=1.26.2,<3"
+
+[package.extras]
+develop = ["aiohttp", "furo", "httpx", "opentelemetry-api", "opentelemetry-sdk", "orjson", "pytest", "pytest-asyncio", "pytest-cov", "pytest-httpserver", "pytest-mock", "requests", "respx", "sphinx (>2)", "sphinx-autodoc-typehints", "trustme"]
+
+[[package]]
+name = "elasticsearch"
+version = "8.18.1"
+description = "Python client for Elasticsearch"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "elasticsearch-8.18.1-py3-none-any.whl", hash = "sha256:1a8c8b5ec3ce5be88f96d2f898375671648e96272978bce0dee3137d9326aabb"},
+    {file = "elasticsearch-8.18.1.tar.gz", hash = "sha256:998035f17a8c1fba7ae26b183dca797dcf95db86da6a7ecba56d31afc40f07c7"},
+]
+
+[package.dependencies]
+elastic-transport = ">=8.15.1,<9"
+python-dateutil = "*"
+typing-extensions = "*"
+
+[package.extras]
+async = ["aiohttp (>=3,<4)"]
+dev = ["aiohttp", "black", "build", "coverage", "isort", "jinja2", "mapbox-vector-tile", "mypy", "nltk", "nox", "numpy", "orjson", "pandas", "pyarrow", "pyright", "pytest", "pytest-asyncio", "pytest-cov", "pytest-mock", "python-dateutil", "pyyaml (>=5.4)", "requests (>=2,<3)", "sentence-transformers", "simsimd", "tqdm", "twine", "types-python-dateutil", "types-tqdm", "unasync"]
+docs = ["sphinx", "sphinx-autodoc-typehints", "sphinx-rtd-theme (>=2.0)"]
+orjson = ["orjson (>=3)"]
+pyarrow = ["pyarrow (>=1)"]
+requests = ["requests (>=2.4.0,!=2.32.2,<3.0.0)"]
+vectorstore-mmr = ["numpy (>=1)", "simsimd (>=3)"]
+
+[[package]]
 name = "filetype"
 version = "1.2.0"
 description = "Infer file type and MIME type of any file/buffer. No external dependencies."
@@ -1308,6 +1353,23 @@ files = [
 [package.dependencies]
 llama-index-core = ">=0.12.0,<0.13.0"
 llama-parse = ">=0.5.0"
+
+[[package]]
+name = "llama-index-vector-stores-elasticsearch"
+version = "0.4.3"
+description = "llama-index vector_stores elasticsearch integration"
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+files = [
+    {file = "llama_index_vector_stores_elasticsearch-0.4.3-py3-none-any.whl", hash = "sha256:5fdf633a152f9c5e73801311b8dcd77c1555193c964a93abc2d7d024bcb456e9"},
+    {file = "llama_index_vector_stores_elasticsearch-0.4.3.tar.gz", hash = "sha256:7288731fc6c636bae75185a096f5cdb94f64b3e3bd3394f89e4059b2bb3695fb"},
+]
+
+[package.dependencies]
+aiohttp = ">=3.9.5,<4.0.0"
+elasticsearch = ">=8.13.1,<9.0.0"
+llama-index-core = ">=0.12.0,<0.13.0"
 
 [[package]]
 name = "llama-index-vector-stores-postgres"
@@ -3029,4 +3091,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12, <3.13"
-content-hash = "873e720cd55bba20c96360342c38836e5eec9f103d3c7431f5dc736d36a06895"
+content-hash = "52279f022152873e1d2c4742d42a1d961909d4edb3d991f766753ae5eee53a87"

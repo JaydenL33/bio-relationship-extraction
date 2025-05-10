@@ -1,77 +1,39 @@
 version: '3.8'
-
 services:
-  pgvector_db:
-    image: ankane/pgvector:latest
-    container_name: pgvector_db
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: pgvector_user
-      POSTGRES_PASSWORD: SuperSecretTestPassword
-      POSTGRES_DB: vector_db
-    volumes:
-      - pgvector_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pgvector_user -d vector_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-volumes:
-  pgvector_data:
-    driver: local
-
-  services:
-    neo4j_db:
-        container_name: neo4j_db
-        build:
-            context: ./database
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.18.1
+        container_name: elasticsearch
         environment:
-            NEO4J_AUTH: neo4j/password
+            - discovery.type=single-node
+            - xpack.security.enabled=false
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ports:
+            - "9200:9200"
+            - "9300:9300"
         volumes:
-            - ./database/neo4j_db/data:/var/lib/neo4j/data
-            - ./database/neo4j_db/conf:/var/lib/neo4j/conf
-            - ./database/neo4j_db/logs:/var/lib/neo4j/logs
-            - ./database/neo4j_db/plugins:/var/lib/neo4j/plugins
-        ports:
-            - 7474:7474
-            - 7687:7687
-        restart: unless-stopped
-
-    etl_service:
-        container_name: etl_service
-        build:
-            context: ./etl_service
-        restart: unless-stopped
-        tty: true
-        depends_on:
-            - neo4j_db
-
-    flask:
-        build: 
-            context: ./src/flask
-        container_name: as_flask
+            - es_data:/usr/share/elasticsearch/data
+        healthcheck:
+            test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status\": \"green\"'" ]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+        networks:
+            - es_network
+    kibana:
+        image: docker.elastic.co/kibana/kibana:8.18.1
+        container_name: kibana
         environment:
-            APP_NAME: MyFlaskApp
-            FLASK_APP: run.py
-            FLASK_ENV: development
-            NEO4J_URI: bolt://neo4j:7687
-            NEO4J_USER: neo4j
-            NEO4J_PASSWORD: password
-        restart: always
-        expose:
-            - '8080'
-        depends_on:
-            - neo4j_db
-
-    nginx:
-        build: 
-            context: ./src/nginx
-        container_name: as_nginx 
-        restart: always
+            - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
         ports:
-            - '80:80'
+            - "5601:5601"
         depends_on:
-            - flask
+            - elasticsearch
+        networks:
+            - es_network
+volumes:
+    es_data:
+
+
+networks:
+    es_network:
+        driver: bridge
