@@ -5,6 +5,9 @@ from llama_index.llms.ollama import Ollama
 import psycopg2
 import os
 import shutil
+from llama_index.core.response_synthesizers import CompactAndRefine
+from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
 
 custom_prompt = PromptTemplate(
     """
@@ -115,6 +118,8 @@ DB_CONFIG = {
 }
 
 # Initialize Ollama models
+
+
 def setup_models():
     # Embedding model (bge-m3)
     Settings.embed_model = OllamaEmbedding(
@@ -129,6 +134,8 @@ def setup_models():
     )
 
 # Initialize pgvector database connection
+
+
 def init_vector_store():
     try:
         vector_store = PGVectorStore.from_params(
@@ -139,7 +146,9 @@ def init_vector_store():
             user=DB_CONFIG["user"],
             table_name="document_embeddings",
             embed_dim=1024,  # bge-m3 produces 1024-dimensional embeddings
-            hybrid_search=True
+            hybrid_search=True,
+            text_search_config="english",
+
         )
         return vector_store
     except Exception as e:
@@ -147,17 +156,19 @@ def init_vector_store():
         return None
 
 # Upload and embed documents
+
+
 def upload_documents(directory_path, processed_dir="./processed_documents"):
     # Create processed directory if it doesn't exist
     os.makedirs(processed_dir, exist_ok=True)
-    
+
     # Read documents from directory
     documents = SimpleDirectoryReader(directory_path).load_data()
-    
+
     if not documents:
         print("No documents found to embed")
         return False
-    
+
     # Initialize vector store
     vector_store = init_vector_store()
     if not vector_store:
@@ -165,25 +176,27 @@ def upload_documents(directory_path, processed_dir="./processed_documents"):
 
     try:
         # Create storage context with PGVectorStore
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        
+        storage_context = StorageContext.from_defaults(
+            vector_store=vector_store)
+
         # Create index with documents and storage context
         index = VectorStoreIndex.from_documents(
             documents,
             storage_context=storage_context,
             show_progress=True
         )
-        
+
         print(f"Successfully embedded {len(documents)} documents")
-        
+
         # Move embedded files to processed directory
         for doc in documents:
             file_path = doc.metadata.get("file_path")
             if file_path and os.path.exists(file_path):
-                destination = os.path.join(processed_dir, os.path.basename(file_path))
+                destination = os.path.join(
+                    processed_dir, os.path.basename(file_path))
                 print(f"Moving {file_path} to {destination}")
                 shutil.move(file_path, destination)
-        
+
         return index
     except Exception as e:
         print(f"Error embedding documents: {e}")
@@ -193,16 +206,35 @@ def upload_documents(directory_path, processed_dir="./processed_documents"):
 # Query the database
 def query_documents(query_str: str, index: VectorStoreIndex):
     # Create query engine
-    
-    query_engine = index.as_query_engine(
+    vector_retriever = index.as_retriever(
+        vector_store_query_mode="default",
         similarity_top_k=5,
-        response_mode="compact",    
-        )
-    query_engine.update_prompts({"response_synthesizer:text_qa_template": custom_prompt})
+    )
+    text_retriever = index.as_retriever(
+        vector_store_query_mode="sparse",
+        similarity_top_k=5,  # interchangeable with sparse_top_k in this context
+    )
+    retriever = QueryFusionRetriever(
+        [vector_retriever, text_retriever],
+        similarity_top_k=5,
+        num_queries=1,  # set this to 1 to disable query generation
+        mode="relative_score",
+        use_async=False,
+    )
+
+    response_synthesizer = CompactAndRefine()
+    query_engine = RetrieverQueryEngine(
+        retriever=retriever,
+        response_synthesizer=response_synthesizer,
+    )
+
+    query_engine.update_prompts(
+        {"response_synthesizer:text_qa_template": custom_prompt})
 
     # Execute query and return response
     response = query_engine.query(query_str)
     return response
+
 
 def main():
     # Setup models
@@ -217,18 +249,19 @@ def main():
     if not vector_store:
         print("Failed to initialize vector store")
         return
-    
+
     try:
         # Create storage context
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        
+        storage_context = StorageContext.from_defaults(
+            vector_store=vector_store)
+
         # Try to load existing index
         index = VectorStoreIndex.from_vector_store(
             vector_store=vector_store,
             storage_context=storage_context
         )
         print("Loaded existing document embeddings from database")
-        
+
         # Check if there are new documents to embed
         if os.path.exists(documents_dir) and any(os.scandir(documents_dir)):
             print("Found new documents to embed")
@@ -255,32 +288,10 @@ def main():
             print("\nSources:")
             for node in response.source_nodes:
                 print(f"- {node.node.metadata.get('file_name', 'Unknown')}: "
-                        f"Score: {node.score:.3f}")
+                      f"Score: {node.score:.3f}")
         except Exception as e:
             print(f"Error processing query: {e}")
 
 
 if __name__ == "__main__":
-    # Create the table if it doesn't exist
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor()
-        # Install pgvector extension
-        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        # Create the table for document embeddings
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS document_embeddings (
-                id UUID PRIMARY KEY,
-                content TEXT,
-                metadata JSONB,
-                embedding vector(1024)
-            );
-        """)
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error creating table: {e}")
-        exit(1)
-
     main()
