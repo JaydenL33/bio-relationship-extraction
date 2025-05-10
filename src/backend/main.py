@@ -1,11 +1,13 @@
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, PromptTemplate, StorageContext
-from llama_index.vector_stores.postgres import PGVectorStore
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.vector_stores.elasticsearch import ElasticsearchStore, AsyncDenseVectorStrategy
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 import psycopg2
 import os
 import shutil
 import uuid
+from elasticsearch import Elasticsearch
 
 custom_prompt = PromptTemplate(
     """
@@ -106,15 +108,6 @@ custom_prompt = PromptTemplate(
 # Ollama API base URL
 base_url = "http://172.20.80.1:11434"
 
-# Database configuration
-DB_CONFIG = {
-    "dbname": "vector_db",
-    "user": "pgvector_user",
-    "password": "SuperSecretTestPassword",
-    "host": "localhost",
-    "port": "5432"
-}
-
 # Initialize Ollama models
 def setup_models():
     # Embedding model (bge-m3)
@@ -129,20 +122,60 @@ def setup_models():
         base_url=base_url
     )
 
-# Initialize pgvector database connection
+# Initialize Elasticsearch database connection with hybrid search
 def init_vector_store():
+    index_name = "embeddings_hybrid"
     try:
-        vector_store = PGVectorStore.from_params(
-            database=DB_CONFIG["dbname"],
-            host=DB_CONFIG["host"],
-            password=DB_CONFIG["password"],
-            port=DB_CONFIG["port"],
-            user=DB_CONFIG["user"],
-            table_name="document_embeddings",
-            embed_dim=1024,  # bge-m3 produces 1024-dimensional embeddings
-            hybrid_search=True
+        # Initialize Elasticsearch client
+        es_client = Elasticsearch("http://localhost:9200")
+        
+        # Define index settings and mappings for hybrid search
+        settings = {
+            "index.max_ngram_diff": 2,  # Allow difference of 2 between max_gram and min_gram
+            "analysis": {
+                "analyzer": {
+                    "ngram_analyzer": {
+                        "tokenizer": "ngram_tokenizer",
+                        "filter": ["lowercase"]
+                    }
+                },
+                "tokenizer": {
+                    "ngram_tokenizer": {
+                        "type": "ngram",
+                        "min_gram": 3,
+                        "max_gram": 5,
+                        "token_chars": ["letter", "digit"]
+                    }
+                }
+            }
+        }
+        mappings = {
+            "properties": {
+                "text": {
+                    "type": "text",
+                    "analyzer": "ngram_analyzer",
+                    "search_analyzer": "standard"
+                },
+                "dense_vector": {
+                    "type": "dense_vector",
+                    "dims": 1024,  # Matches bge-m3 model's output dimension
+                    "index": True,
+                    "similarity": "cosine"
+                }
+            }
+        }
+        
+        # Create index if it doesn’t exist
+        if not es_client.indices.exists(index=index_name):
+            es_client.indices.create(index=index_name, body={"settings": settings, "mappings": mappings})
+        
+        # Initialize ElasticsearchStore with hybrid retrieval strategy
+        hybrid_vector_store = ElasticsearchStore(
+            es_url="http://localhost:9200",
+            index_name=index_name,
+            retrieval_strategy=AsyncDenseVectorStrategy(hybrid=True)
         )
-        return vector_store
+        return hybrid_vector_store
     except Exception as e:
         print(f"Error connecting to database: {e}")
         return None
@@ -165,7 +198,7 @@ def upload_documents(directory_path, processed_dir="./processed_documents"):
         return False
 
     try:
-        # Create storage context with PGVectorStore
+        # Create storage context with Elasticsearch
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         
         # Create index with documents and storage context
@@ -190,18 +223,54 @@ def upload_documents(directory_path, processed_dir="./processed_documents"):
         print(f"Error embedding documents: {e}")
         return False
 
-
-# Query the database
+# Query the database with hybrid search
 def query_documents(query_str: str, index: VectorStoreIndex):
-    # Create query engine
-    
-    query_engine = index.as_query_engine(
+    # Create separate retrievers for BM25 and vector search
+    bm25_retriever = index.as_retriever(
         similarity_top_k=5,
-        response_mode="compact",    
-        )
+        vector_store_query_mode="default"  # BM25 only
+    )
+    vector_retriever = index.as_retriever(
+        similarity_top_k=5,
+        vector_store_query_mode="sparse_vector"  # Vector only
+    )
+    
+    # Fetch results
+    bm25_results = bm25_retriever.retrieve(query_str)
+    vector_results = vector_retriever.retrieve(query_str)
+    
+    # Implement RRF manually
+    k = 60  # RRF constant
+    score_dict = {}
+    
+    # Score BM25 results
+    for rank, node in enumerate(bm25_results, 1):
+        doc_id = node.node.node_id
+        if doc_id not in score_dict:
+            score_dict[doc_id] = {"node": node, "score": 0}
+        score_dict[doc_id]["score"] += 1.0 / (k + rank)
+    
+    # Score vector results
+    for rank, node in enumerate(vector_results, 1):
+        doc_id = node.node.node_id
+        if doc_id not in score_dict:
+            score_dict[doc_id] = {"node": node, "score": 0}
+        score_dict[doc_id]["score"] += 1.0 / (k + rank)
+    
+    # Sort by RRF score
+    fused_results = sorted(score_dict.values(), key=lambda x: x["score"], reverse=True)[:5]
+    fused_nodes = [entry["node"] for entry in fused_results]
+    
+    # Create query engine with custom nodes
+    query_engine = RetrieverQueryEngine.from_args(
+        retriever=bm25_retriever,  # Use BM25 retriever as base
+        node_postprocessors=[lambda nodes, query: fused_nodes]  # Override with fused results
+    )
+    
+    # Update prompt
     query_engine.update_prompts({"response_synthesizer:text_qa_template": custom_prompt})
-
-    # Execute query and return response
+    
+    # Execute query
     response = query_engine.query(query_str)
     return response
 
@@ -260,28 +329,5 @@ def main():
         except Exception as e:
             print(f"Error processing query: {e}")
 
-
 if __name__ == "__main__":
-    # Create the table if it doesn't exist
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor()
-        # Install pgvector extension
-        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        # Create the table for document embeddings
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS document_embeddings (
-                id UUID PRIMARY KEY,
-                content TEXT,
-                metadata JSONB,
-                embedding vector(1024)
-            );
-        """)
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error creating table: {e}")
-        exit(1)
-
     main()
