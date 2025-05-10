@@ -5,7 +5,6 @@ from llama_index.llms.ollama import Ollama
 import psycopg2
 import os
 import shutil
-import uuid
 
 custom_prompt = PromptTemplate(
     """
