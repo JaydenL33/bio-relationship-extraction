@@ -4,7 +4,10 @@ from llama_index.llms.ollama import Ollama
 from services.initalise_vector_store import init_vector_store
 from models.structured_response import BioMedicalResponse
 from llama_index.core import VectorStoreIndex, Settings, StorageContext
+import sys
+from state import app_state
 
+# Configuration
 base_url = "http://172.20.80.1:11434"
 
 # Database configuration
@@ -17,29 +20,68 @@ DB_CONFIG = {
 }
 
 # Initialize Ollama models
+
+
 def setup_models():
     Settings.embed_model = OllamaEmbedding(
         model_name="bge-m3:latest",
         base_url=base_url
-
     )
     Settings.llm = Ollama(
         model="deepseek-r1:14b",
         base_url=base_url,
-        
     ).as_structured_llm(output_cls=BioMedicalResponse)
 
 
-vector_store = init_vector_store()
-if not vector_store:
-    print("Failed to initialize vector store")
-setup_models()
-# Global settings for RAG
-# VectorStoreIndex requires a vector store
-storage_context = StorageContext.from_defaults(
-    vector_store=vector_store)
-# Index for the vector store
-index = VectorStoreIndex.from_vector_store(
-    vector_store=vector_store,
-    storage_context=storage_context
-)
+def initialise_resources(store=None, index=None):
+    """Initialize all LLM and vector store resources"""
+    try:
+        print("Initializing LLM resources...")
+        # Setup LLM and embedding models
+        setup_models()
+
+        if store:
+            # Use provided vector store
+            vector_store = store
+        else:
+            vector_store = init_vector_store()
+        if not vector_store:
+            print("Failed to initialize vector store")
+            return False
+
+        # Create storage context and index
+        storage_context = StorageContext.from_defaults(
+            vector_store=vector_store)
+        if index:
+            index = index
+        else:
+            index = VectorStoreIndex.from_vector_store(
+                vector_store=vector_store,
+                storage_context=storage_context
+            )
+
+        # Store in global state
+        app_state.vector_store = vector_store
+        app_state.index = index
+        app_state.initialized = True
+
+        print("LLM resources initialized successfully")
+        return True
+    except Exception as e:
+        print(f"Error initializing resources: {e}", file=sys.stderr)
+        return False
+
+
+def get_index():
+    """Get the vector index, initializing if needed"""
+    if not app_state.initialized:
+        initialise_resources()
+    return app_state.index
+
+
+def set_index(index: VectorStoreIndex) -> VectorStoreIndex:
+    """Setting the the vector index, initializing if needed"""
+    if not app_state.initialized:
+        initialise_resources()
+    app_state.index = index
+    return app_state.index

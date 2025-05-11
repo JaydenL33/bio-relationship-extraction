@@ -5,8 +5,13 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from models.structured_response import RelationshipType
 from llama_index.core.prompts import PromptTemplate
 from models.structured_response import RelationshipType
+from services.llm import get_index
 
-def query_documents(query_str: str, index: VectorStoreIndex):
+def query_documents(query_str: str, index: VectorStoreIndex = None):
+    # Get index from global state if not provided
+    if index is None:
+        index = get_index()
+        
     # Define system prompt for structured output
     relationship_types_str = ", ".join([r.value for r in RelationshipType])
 

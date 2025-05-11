@@ -4,13 +4,21 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from contextlib import asynccontextmanager
 from services.initalise_vector_store import init_vector_store, upload_documents
-from services.llm import setup_models
+from services.llm import initialise_resources
+from state import app_state
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # For setting up the lifespan of the FastAPI app
+    # Initialize resources before the app starts
+    print("Initializing application resources...")
+    if not app_state.initialized:
+        success = initialise_resources()
+        if not success:
+            print("WARNING: Failed to initialize resources during startup")
     yield
+    # Cleanup code would go here if needed
+    print("Shutting down application...")
 
 
 app = FastAPI(
@@ -34,9 +42,12 @@ async def root():
     return {"message": "Welcome to Bio Relationship Extraction API"}
 
 def main():
-    # This function can be used for non-API initialization if needed
-    pass
+    # Initialize resources early to avoid timing issues
+    if not app_state.initialized:
+        initialise_resources()
 
 if __name__ == "__main__":
+    # Initialize before starting the server
+    main()
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 

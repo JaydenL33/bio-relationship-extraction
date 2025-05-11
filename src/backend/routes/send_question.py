@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from services.query_documents import query_documents
-from services.llm import index
+from services.llm import get_index
 
 
 # Define a Pydantic model for request validation
@@ -14,6 +14,7 @@ router = APIRouter()
 @router.post("/questions/")
 async def send_question(question: Question = Body(...)):
     try:
+        index = get_index()
         response = query_documents(question.text, index)
         # Print structured response
         response_dict = response.response.model_dump()
