@@ -78,10 +78,3 @@ def get_index():
         initialise_resources()
     return app_state.index
 
-
-def set_index(index: VectorStoreIndex) -> VectorStoreIndex:
-    """Setting the the vector index, initializing if needed"""
-    if not app_state.initialized:
-        initialise_resources()
-    app_state.index = index
-    return app_state.index

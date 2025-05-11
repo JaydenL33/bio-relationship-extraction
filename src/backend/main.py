@@ -10,8 +10,8 @@ from state import app_state
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize resources before the app starts
-    print("Initializing application resources...")
+    # Initialise resources before the app starts
+    print("Initialising application resources...")
     if not app_state.initialized:
         success = initialise_resources()
         if not success:
@@ -42,12 +42,13 @@ async def root():
     return {"message": "Welcome to Bio Relationship Extraction API"}
 
 def main():
-    # Initialize resources early to avoid timing issues
+    # Initialise resources early to avoid timing issues
     if not app_state.initialized:
         initialise_resources()
+    upload_documents()
 
 if __name__ == "__main__":
-    # Initialize before starting the server
+    # Initialise before starting the server
     main()
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 

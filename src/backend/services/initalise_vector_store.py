@@ -1,15 +1,8 @@
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, PromptTemplate, StorageContext
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext
 from llama_index.vector_stores.postgres import PGVectorStore
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
 import os
 import shutil
-from llama_index.core.response_synthesizers import CompactAndRefine
-from llama_index.core.retrievers import QueryFusionRetriever
-from llama_index.core.query_engine import RetrieverQueryEngine
-from models.structured_response import BioMedicalResponse, RelationshipType
-from llama_index.core.prompts import PromptTemplate
-from llama_index.core.output_parsers import PydanticOutputParser
+
 
 # Database configuration | Modify this for your database
 DB_CONFIG = {
@@ -40,7 +33,7 @@ def init_vector_store():
         return None
 
 
-def upload_documents(directory_path, processed_dir="./processed_documents"):
+def upload_documents(directory_path="./documents", processed_dir="./processed_documents"):
     os.makedirs(processed_dir, exist_ok=True)
     documents = SimpleDirectoryReader(directory_path).load_data()
 
