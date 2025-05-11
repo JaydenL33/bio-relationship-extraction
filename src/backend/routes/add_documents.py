@@ -1,4 +1,4 @@
-import datetime\
+import datetime
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
 from typing import Optional
@@ -35,11 +35,11 @@ async def add_document(document: Document = Body(...)):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 # Addings a relationship to our Neo4j database
-@router.post("neo4j/add_relationship/")
+@router.post("/neo4j/add_relationship/")
 async def add_relationship(relationships: Relationship = Body(...)):
     try:
         # Assuming you have a function to add a relationship in your service
-        add_relationships_to_neo4j(relationships)
+        await add_relationships_to_neo4j(relationships)
         return {"message": "Relationship added successfully"}, 201
     except Exception as e:
         print(f"Error processing query: {e}")
