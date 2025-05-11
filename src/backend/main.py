@@ -3,19 +3,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from contextlib import asynccontextmanager
-from src.backend.services.initalise_vector_store import init_vector_store, upload_documents
-from src.backend.services.llm import setup_models
+from backend.services.initalise_vector_store import init_vector_store, upload_documents
+from backend.services.llm import setup_models
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize models and vector stores on startup
     await setup_models()
-    # Uncomment the following lines if you want to initialize vector store at startup
-    # init_vector_store()
     await upload_documents()
     yield
-    # Cleanup code (if any) goes here
 
 
 app = FastAPI(
