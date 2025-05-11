@@ -35,9 +35,9 @@ def init_vector_store():
 
 def upload_documents(directory_path="./documents", processed_dir="./processed_documents"):
     os.makedirs(processed_dir, exist_ok=True)
-    documents = SimpleDirectoryReader(directory_path).load_data()
-
-    if not documents:
+    try:
+        documents = SimpleDirectoryReader(directory_path).load_data()
+    except Exception as e:
         print("No documents found to embed")
         return False
 

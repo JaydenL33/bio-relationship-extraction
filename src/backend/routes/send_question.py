@@ -31,6 +31,7 @@ async def send_question(question: Question = Body(...)):
         for node in response.source_nodes:
             print(f"- {node.node.metadata.get('file_name', 'Unknown')}: "
                     f"Score: {node.score:.3f}")
+        return {"response": response_dict, "sources": response.source_nodes}, 200
     except Exception as e:
         print(f"Error processing query: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

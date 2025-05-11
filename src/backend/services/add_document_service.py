@@ -4,6 +4,7 @@ import os
 import shutil
 
 from config import get_neo4j_connection
+from models.structured_response import Relationship
 from services.initalise_vector_store import init_vector_store
 
 
@@ -43,7 +44,7 @@ def add_text_document(text, metadata=None) -> bool:
         print(f"Error embedding text document: {e}")
         return False
 
-async def add_relationships_to_neo4j(response_dict):
+async def add_relationships_to_neo4j(relationships: Relationship):
     # Initialize Neo4j driver
     driver = get_neo4j_connection()
 
@@ -58,16 +59,11 @@ async def add_relationships_to_neo4j(response_dict):
         tx.run(query, entity1=entity1, entity2=entity2, relation=relation)
 
     # Process relationships
-    if response_dict.get("relationships"):
+    if relationships:
         print("---------------------")
         with driver.session() as session:
-            for rel in response_dict["relationships"]:
-                entity1 = rel["entity1"]
-                relation = rel["relation"]
-                entity2 = rel["entity2"]
-                print(f"{entity1} {relation} {entity2}")
-                # Execute the Cypher query to add to Neo4j using non-deprecated method
-                session.execute_write(create_nodes_and_relationships, entity1, relation, entity2)
+            # Execute the Cypher query to add to Neo4j using non-deprecated method
+            session.execute_write(create_nodes_and_relationships, relationships.entity1, relationships.relation, relationships.entity2)
 
     # Close the driver
     driver.close()

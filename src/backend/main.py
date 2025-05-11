@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from services.initalise_vector_store import init_vector_store, upload_documents
 from services.llm import initialise_resources
 from state import app_state
+from routes import health_check, send_question, add_documents, pubmed_search
 
 
 @asynccontextmanager
@@ -36,6 +37,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(health_check.router)
+app.include_router(send_question.router)
+app.include_router(add_documents.router)
+app.include_router(pubmed_search.router, tags=["PubMed"])
 
 @app.get("/")
 async def root():
