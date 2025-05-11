@@ -1,14 +1,18 @@
 import streamlit as st
-import requests
 import pandas as pd
 import networkx as nx
 from pyvis.network import Network
 import matplotlib.pyplot as plt
-from utils.api_connector import get_data_from_api, post_data_to_api
-from utils.db_connector import Neo4jConnector
-from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 import json
 import html
+
+# Import local modules
+from helper.api import get_data_from_api, post_data_to_api
+from helper.neo4j_connector import Neo4jConnector
+from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+from paper_search import search_papers_page
+from confirm_relationships import validate_relationships_page  
+from knowledger_graph import view_graph_page
 
 def main():
     st.set_page_config(page_title="PubMed Knowledge Graph Builder", layout="wide")
@@ -38,5 +42,6 @@ def main():
     # Close the Neo4J connection when app closes
     neo4j_connector.close()
 
-# The main function call will go at the bottom of the file after
-# we define all our other functions
+# Run the app
+if __name__ == "__main__":
+    main()
