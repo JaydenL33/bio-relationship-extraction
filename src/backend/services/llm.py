@@ -1,7 +1,7 @@
 from llama_index.core import Settings
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
-from backend.services.initalise_vector_store import init_vector_store
+from services.initalise_vector_store import init_vector_store
 from models.structured_response import BioMedicalResponse
 from llama_index.core import VectorStoreIndex, Settings, StorageContext
 

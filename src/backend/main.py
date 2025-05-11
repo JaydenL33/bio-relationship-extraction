@@ -3,8 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from contextlib import asynccontextmanager
-from backend.services.initalise_vector_store import init_vector_store, upload_documents
-from backend.services.llm import setup_models
+from services.initalise_vector_store import init_vector_store, upload_documents
+from services.llm import setup_models
 
 
 @asynccontextmanager
@@ -40,5 +40,5 @@ def main():
     pass
 
 if __name__ == "__main__":
-    uvicorn.run("src.backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 

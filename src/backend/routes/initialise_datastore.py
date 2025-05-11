@@ -3,9 +3,9 @@ import os
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
 
-from backend.main import query_documents
-from backend.services.initalise_vector_store import upload_documents
-from backend.services.llm import setup_models
+from main import query_documents
+from services.initalise_vector_store import upload_documents
+from services.llm import setup_models
 
 
 # Define a Pydantic model for request validation

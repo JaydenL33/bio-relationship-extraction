@@ -4,7 +4,7 @@ from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 from models.structured_response import RelationshipType
 from llama_index.core.prompts import PromptTemplate
-from backend.models.structured_response import RelationshipType
+from models.structured_response import RelationshipType
 
 def query_documents(query_str: str, index: VectorStoreIndex):
     # Define system prompt for structured output
