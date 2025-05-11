@@ -1,19 +1,18 @@
 
 import os
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import APIRouter, FastAPI, HTTPException, Body
 from pydantic import BaseModel
 
-from main import query_documents
 from services.initalise_vector_store import upload_documents
-from services.llm import setup_models
 
 
 # Define a Pydantic model for request validation
 class Question(BaseModel):
     text: str
     
+router = APIRouter()
 
-@app.post("/initalise/")
+@router.post("/initalise/")
 async def send_question(question: Question = Body(...)):
     documents_dir = "./documents"
     processed_dir = "./processed_documents"

@@ -21,6 +21,7 @@ def setup_models():
     Settings.embed_model = OllamaEmbedding(
         model_name="bge-m3:latest",
         base_url=base_url
+
     )
     Settings.llm = Ollama(
         model="deepseek-r1:14b",
@@ -32,9 +33,12 @@ def setup_models():
 vector_store = init_vector_store()
 if not vector_store:
     print("Failed to initialize vector store")
-
+setup_models()
+# Global settings for RAG
+# VectorStoreIndex requires a vector store
 storage_context = StorageContext.from_defaults(
     vector_store=vector_store)
+# Index for the vector store
 index = VectorStoreIndex.from_vector_store(
     vector_store=vector_store,
     storage_context=storage_context

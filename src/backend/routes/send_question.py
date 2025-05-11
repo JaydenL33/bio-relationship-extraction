@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import APIRouter, FastAPI, HTTPException, Body
 from pydantic import BaseModel
 from typing import Optional
 
@@ -10,8 +10,8 @@ from services.llm import index
 class Question(BaseModel):
     text: str
     
-
-@app.post("/questions/")
+router = APIRouter()
+@router.post("/questions/")
 async def send_question(question: Question = Body(...)):
     try:
         response = query_documents(question.text, index)

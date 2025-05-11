@@ -9,9 +9,7 @@ from services.llm import setup_models
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize models and vector stores on startup
-    await setup_models()
-    await upload_documents()
+    # For setting up the lifespan of the FastAPI app
     yield
 
 
