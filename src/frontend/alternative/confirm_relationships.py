@@ -25,6 +25,18 @@ def validate_relationships_page(neo4j_connector):
     
     current_rel = st.session_state.relationships[current_index]
     
+    # Validate current relationship has all required fields
+    required_fields = ['subject', 'subject_type', 'predicate', 'object', 'object_type']
+    is_valid = all(field in current_rel for field in required_fields)
+    
+    if not is_valid:
+        st.error("The current relationship is missing required fields.")
+        st.write("Relationship data:", current_rel)
+        if st.button("Skip Invalid Relationship"):
+            st.session_state.current_rel_index += 1
+            st.experimental_rerun()
+        return
+    
     # Check for duplicates in Neo4j
     is_duplicate = check_duplicate_relationship(neo4j_connector, current_rel)
     
@@ -45,8 +57,12 @@ def validate_relationships_page(neo4j_connector):
             st.markdown(f"**Type**: {current_rel['object_type']}")
         
         st.markdown("---")
-        st.markdown(f"**Source Paper**: {current_rel['paper_title']}")
-        st.markdown(f"**Excerpt**: \"{current_rel['context']}\"")
+        # Use get() to safely access optional fields
+        paper_title = current_rel.get('paper_title', 'Unknown Paper')
+        context = current_rel.get('context', 'No context provided')
+        
+        st.markdown(f"**Source Paper**: {paper_title}")
+        st.markdown(f"**Excerpt**: \"{context}\"")
     
     # Warning for duplicates
     if is_duplicate:

@@ -26,7 +26,8 @@ python-streamlit-neo4j-api-app
 2. **Install the required packages:**
    Make sure you have Python installed, then run:
    ```
-   pip install -r requirements.txt
+   poetry env activate
+   poetry install
    ```
 
 3. **Configure the application:**

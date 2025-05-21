@@ -1,26 +1,47 @@
 import streamlit as st
 import pandas as pd
+from pyvis.network import Network
 
 def check_duplicate_relationship(neo4j_connector, relationship):
     """Check if a relationship already exists in Neo4j"""
+    # Validate that the relationship dictionary has all required keys
+    required_keys = ['subject_type', 'predicate', 'object_type', 'subject', 'object']
+    missing_keys = [key for key in required_keys if key not in relationship]
+    
+    if missing_keys:
+        st.warning(f"Relationship is missing required keys: {', '.join(missing_keys)}")
+        st.write("Relationship data:", relationship)
+        return False  # Can't check for duplicates with missing data
+    
+    # Safe extraction of values with fallbacks for any missing keys
+    subject_type = relationship.get('subject_type', 'Entity')
+    predicate = relationship.get('predicate', 'RELATED_TO')
+    object_type = relationship.get('object_type', 'Entity')
+    
+    # Build the query with proper escaping for Neo4j label names
+    # We use explicit string formatting rather than relying on Neo4j parameter substitution for label names
     query = """
-    MATCH (s:`{subject_type}` {name: $subject_name})-
-          [r:`{predicate}`]->
-          (o:`{object_type}` {name: $object_name})
+    MATCH (s:{subject_type} {{name: $subject_name}})-
+          [r:{predicate}]->
+          (o:{object_type} {{name: $object_name}})
     RETURN count(r) as count
     """.format(
-        subject_type=relationship['subject_type'],
-        predicate=relationship['predicate'],
-        object_type=relationship['object_type']
+        subject_type=subject_type,
+        predicate=predicate,
+        object_type=object_type
     )
     
     params = {
-        "subject_name": relationship['subject'],
-        "object_name": relationship['object']
+        "subject_name": relationship.get('subject', ''),
+        "object_name": relationship.get('object', '')
     }
     
-    result = neo4j_connector.fetch_data(query, params)
-    return result[0]['count'] > 0 if result else False
+    try:
+        result = neo4j_connector.fetch_data(query, params)
+        return result[0]['count'] > 0 if result else False
+    except Exception as e:
+        st.error(f"Error checking for duplicate relationship: {e}")
+        return False  # Assume no duplicate if there's an error
 
 def build_graph_query(entity_type, relationship_type, keyword_filter="", max_nodes=50):
     """Build a Cypher query based on filters"""
