@@ -1,12 +1,22 @@
 import streamlit as st
-from helper.api import post_data_to_api
-from helper.helpers import check_duplicate_relationship
+import time
 
 def validate_relationships_page(neo4j_connector):
     st.header("Validate Extracted Relationships")
     
+    # Success/Error notification area at top
+    if "result_notification" in st.session_state:
+        if st.session_state.result_notification["success"]:
+            st.success(st.session_state.result_notification["message"])
+        else:
+            st.error(st.session_state.result_notification["message"])
+        
+        # Clear the notification after 3 seconds
+        if time.time() - st.session_state.result_notification["time"] > 3:
+            del st.session_state.result_notification
+    
     # Check if we have relationships to validate
-    if len(st.session_state.relationships) == 0:
+    if "relationships" not in st.session_state or len(st.session_state.relationships) == 0:
         st.info("No relationships to validate. Please search for papers and extract relationships first.")
         return
     
@@ -37,9 +47,6 @@ def validate_relationships_page(neo4j_connector):
             st.rerun()
         return
     
-    # Check for duplicates in Neo4j
-    is_duplicate = check_duplicate_relationship(neo4j_connector, current_rel)
-    
     # Display the relationship card in a nice box
     st.subheader("Relationship Card")
     with st.container():
@@ -64,40 +71,79 @@ def validate_relationships_page(neo4j_connector):
         st.markdown(f"**Source Paper**: {paper_title}")
         st.markdown(f"**Excerpt**: \"{context}\"")
     
-    # Warning for duplicates
-    if is_duplicate:
-        st.warning("⚠️ This relationship may already exist in the knowledge graph.")
-    
     # Buttons for validation
     col1, col2 = st.columns(2)
     
-    with col1:
-        if st.button("👍 Confirm", key="confirm_btn"):
-            # Call API to store the confirmed relationship
-            try:
-                # Convert to API format
-                relationship_data = {
-                    "entity1": current_rel['subject'],
-                    "relation": current_rel['predicate'],
-                    "entity2": current_rel['object']
-                }
-                
-                # Send to Neo4j add relationship endpoint
-                response = post_data_to_api("neo4j/add_relationship/", relationship_data)
-                
-                if response and response[0].get("message") == "Relationship added successfully":
-                    st.success("Relationship confirmed and added to the knowledge graph!")
-                else:
-                    st.error(f"Error: {response[0].get('error', 'Unknown error')}")
-            except Exception as e:
-                st.error(f"Error connecting to API: {str(e)}")
+    def confirm_relationship():
+        try:
+            subject = current_rel['subject']
+            object_entity = current_rel['object']
+            subject_type = current_rel['subject_type'] 
+            object_type = current_rel['object_type']
+            predicate = current_rel['predicate']
             
-            # Move to next relationship
+            # Format the parameters for Neo4j
+            query = """
+            MERGE (s:{subject_type} {{name: $subject}})
+            MERGE (o:{object_type} {{name: $object}})
+            MERGE (s)-[r:{predicate}]->(o)
+            ON CREATE SET r.created = timestamp(), r.context = $context, r.source = $paper_title
+            ON MATCH SET r.updated = timestamp(), r.context = $context, r.source = $paper_title
+            RETURN s, r, o
+            """.format(
+                subject_type=subject_type,
+                object_type=object_type,
+                predicate=predicate
+            )
+            
+            params = {
+                "subject": subject,
+                "object": object_entity,
+                "context": context,
+                "paper_title": paper_title
+            }
+            
+            # Execute the query and save result flag
+            result = neo4j_connector.execute_query(query, params)
+            success = result is not None and len(result) > 0
+            
+            # Set notification state
+            st.session_state.result_notification = {
+                "success": success,
+                "message": "Relationship confirmed and added to the knowledge graph!" if success else "Failed to add relationship to the knowledge graph.",
+                "time": time.time()
+            }
+            
+            # Store the confirmed relationship
+            if "confirmed_relationships" not in st.session_state:
+                st.session_state.confirmed_relationships = []
+            
+            if success:
+                st.session_state.confirmed_relationships.append(current_rel)
+            
+            # Move to the next relationship
             st.session_state.current_rel_index += 1
-            st.rerun()
+            
+        except Exception as e:
+            # Set error notification state
+            st.session_state.result_notification = {
+                "success": False,
+                "message": f"Error adding relationship: {str(e)}",
+                "time": time.time()
+            }
+    
+    with col1:
+        if st.button("👍 Confirm", key="confirm_btn", on_click=confirm_relationship):
+            pass  # The actual logic is in the confirm_relationship function
     
     with col2:
         if st.button("👎 Reject", key="reject_btn"):
             # Skip this relationship
             st.session_state.current_rel_index += 1
+            # Set notification state
+            st.session_state.result_notification = {
+                "success": True,
+                "message": "Relationship rejected.",
+                "time": time.time()
+            }
             st.rerun()

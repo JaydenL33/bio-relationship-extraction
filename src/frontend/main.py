@@ -3,8 +3,7 @@ import pandas as pd
 import networkx as nx
 from pyvis.network import Network
 import matplotlib.pyplot as plt
-import json
-import html
+
 
 # Import local modules
 from helper.api import get_data_from_api, post_data_to_api
@@ -23,28 +22,46 @@ def main():
         st.session_state.current_rel_index = 0
     if "relationships" not in st.session_state:
         st.session_state.relationships = []
+    if "redirect_to_validate" not in st.session_state:
+        st.session_state.redirect_to_validate = False
+    if "result_notification" not in st.session_state:
+        st.session_state.result_notification = None
     
     # Connect to the Neo4J database
     neo4j_connector = Neo4jConnector(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
-    try:
-        neo4j_connector.connect()
-        # Check if we can connect to the API
-        health_check = get_data_from_api("health")
-        if not health_check:
-            st.sidebar.error("⚠️ Cannot connect to the backend API. Please ensure it's running.")
-    except Exception as e:
-        st.sidebar.error(f"⚠️ Error connecting to Neo4j: {str(e)}")
+    connected = neo4j_connector.connect()
+    if not connected:
+        st.sidebar.error("⚠️ Cannot connect to Neo4j database. Please check your connection settings.")
+    
+    # Check if we can connect to the API
+    health_check = get_data_from_api("health")
+    if not health_check:
+        st.sidebar.error("⚠️ Cannot connect to the backend API. Please ensure it's running.")
     
     # Sidebar for navigation
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Paper Management", "Validate Relationships", "View Knowledge Graph"])
     
+    # Handle redirection from paper search to validation
+    if st.session_state.redirect_to_validate:
+        st.session_state.redirect_to_validate = False
+        page = "Validate Relationships"
+    else:
+        page = st.sidebar.radio("Go to", ["Paper Management", "Validate Relationships", "View Knowledge Graph"])
+    
+    # Display page based on selection
     if page == "Paper Management":
         search_papers_page()
     elif page == "Validate Relationships":
         validate_relationships_page(neo4j_connector)
     elif page == "View Knowledge Graph":
         view_graph_page(neo4j_connector)
+    
+    # Debug information in sidebar
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Debug Info")
+    st.sidebar.write(f"Current page: {page}")
+    st.sidebar.write(f"Relationships to validate: {len(st.session_state.get('relationships', []))}")
+    st.sidebar.write(f"Current index: {st.session_state.get('current_rel_index', 0)}")
     
     # Close the Neo4J connection when app closes
     try:

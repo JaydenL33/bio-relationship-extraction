@@ -130,27 +130,29 @@ def search_papers_page():
                                     }
                                     formatted_relationships.append(formatted_rel)
                                 
-                                # Display the relationships in a table
-                                rel_df = pd.DataFrame([
-                                    {
-                                        'Subject': rel['subject'],
-                                        'Relationship': rel['predicate'],
-                                        'Object': rel['object']
-                                    } for rel in formatted_relationships
-                                ])
-                                st.dataframe(rel_df)
+                                # Store the relationships for validation and direct user to confirmation page
+                                st.session_state.relationships = formatted_relationships
+                                st.session_state.current_rel_index = 0
+                                st.success(f"Found {len(formatted_relationships)} relationships! Redirecting to validation page...")
                                 
-                                # Store the relationships for validation
-                                if st.button("Validate These Relationships"):
-                                    st.session_state.relationships = formatted_relationships
-                                    st.session_state.current_rel_index = 0
-                                    st.success("Relationships ready for validation!")
-                                    st.info("Go to 'Validate Relationships' to review and confirm these relationships.")
+                                # Display source documents if available before redirecting
+                                if sources and len(sources) > 0:
+                                    st.subheader("Source Documents")
+                                    for i, source in enumerate(sources):
+                                        if "node" in source and "text" in source["node"]:
+                                            with st.expander(f"Source {i+1}"):
+                                                file_name = source["node"].get("extra_info", {}).get("file_name", "Unknown")
+                                                st.markdown(f"**Document**: {file_name}")
+                                                st.markdown(source["node"]["text"])
+                                
+                                # Auto-redirect to validation page
+                                st.session_state.redirect_to_validate = True
+                                st.rerun()
                             else:
                                 st.warning("No relationships were extracted from the response.")
                             
-                            # Display source documents if available
-                            if sources and len(sources) > 0:
+                            # Display source documents if available if no relationships were found
+                            if (not relationships or len(relationships) == 0) and sources and len(sources) > 0:
                                 st.subheader("Source Documents")
                                 for i, source in enumerate(sources):
                                     if "node" in source and "text" in source["node"]:
