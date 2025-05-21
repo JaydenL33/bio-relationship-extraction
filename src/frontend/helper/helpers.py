@@ -172,6 +172,3 @@ def convert_graph_to_csv(graph_data):
     
     header = "Subject,SubjectType,Relationship,Object,ObjectType\n"
     return header + "\n".join(rows)
-
-if __name__ == "__main__":
-    main()
