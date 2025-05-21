@@ -1,1 +1,3 @@
-# This file makes the 'helper' directory a Python package
+"""
+Helper module for the Bio Relationship Extraction application
+"""

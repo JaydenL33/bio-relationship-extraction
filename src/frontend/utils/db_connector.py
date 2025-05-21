@@ -1,19 +1,13 @@
-class Neo4jConnector:
-    def __init__(self, uri, user, password):
-        self.uri = uri
-        self.user = user
-        self.password = password
-        self.driver = None
+"""
+Compatibility layer to redirect to helper.neo4j_connector
+This maintains backward compatibility with any code that might import from utils.db_connector
+"""
 
-    def connect(self):
-        from neo4j import GraphDatabase
-        self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+from helper.neo4j_connector import Neo4jConnector as BaseNeo4jConnector
 
-    def fetch_data(self, query):
-        with self.driver.session() as session:
-            result = session.run(query)
-            return [record.data() for record in result]
-
-    def close(self):
-        if self.driver is not None:
-            self.driver.close()
+class Neo4jConnector(BaseNeo4jConnector):
+    """
+    Neo4j connector class - redirects to implementation in helper.neo4j_connector
+    This class is kept for backward compatibility
+    """
+    pass

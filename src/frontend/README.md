@@ -7,9 +7,10 @@ This project is a Streamlit application that connects to a REST API running on l
 ```
 python-streamlit-neo4j-api-app
 ├── app.py                # Main entry point of the Streamlit application
-├── utils                 # Utility functions for API and database connections
-│   ├── api_connector.py  # Functions to connect to the API
-│   └── db_connector.py   # Functions to connect to the Neo4J database
+├── helper                # Helper functions for application
+│   ├── api.py            # Functions to connect to the API
+│   └── neo4j_connector.py # Functions to connect to the Neo4J database
+├── utils                 # Additional utility functions
 ├── config.py             # Configuration settings for API and database
 ├── requirements.txt      # List of dependencies
 └── README.md             # Documentation for the project
@@ -46,7 +47,7 @@ Once the application is running, you can access it in your web browser at `http:
 ## API and Database Connections
 
 - The application connects to a REST API hosted on `http://localhost:8000`. Ensure that the API is running before starting the Streamlit app.
-- The Neo4J database connection is managed through the `Neo4jConnector` class in `utils/db_connector.py`. Make sure the database is accessible with the credentials provided in `config.py`.
+- The Neo4J database connection is managed through the `Neo4jConnector` class in `helper/neo4j_connector.py`. Make sure the database is accessible with the credentials provided in `config.py`.
 
 ## Dependencies
 
