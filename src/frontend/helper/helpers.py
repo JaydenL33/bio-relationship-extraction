@@ -94,6 +94,7 @@ def create_interactive_graph(graph_data):
         str: HTML content of the graph
     """
     # Initialize a new network
+    print(graph_data)
     net = Network(height="550px", width="100%", bgcolor="#FFFFFF", 
                  directed=True, notebook=False, cdn_resources="remote")
     
@@ -132,8 +133,14 @@ def create_interactive_graph(graph_data):
                         group=target_type, shape="dot")
             added_nodes.add(target_id)
         
-        # Add edge
-        rel_type = rel.get('type', 'RELATED_TO')
+        # Add edge - handling tuple structure of relationship
+        if isinstance(rel, tuple) and len(rel) >= 2:
+            # The relationship type is the middle element of the tuple
+            rel_type = rel[1]
+        else:
+            # Fallback for dictionary format or other formats
+            rel_type = rel.get('type', 'RELATED_TO') if isinstance(rel, dict) else 'RELATED_TO'
+            
         net.add_edge(source_id, target_id, label=rel_type, title=rel_type)
     
     # Generate and return the html content
@@ -159,10 +166,18 @@ def display_graph_as_table(graph_data):
         target = item.get('n2', {})
         rel = item.get('r', {})
         
+        # Determine relationship type based on data structure
+        if isinstance(rel, tuple) and len(rel) >= 2:
+            # The relationship type is the middle element of the tuple
+            relationship_type = rel[1]
+        else:
+            # Fallback for dictionary format or other formats
+            relationship_type = rel.get('type', 'RELATED_TO') if isinstance(rel, dict) else 'RELATED_TO'
+        
         rows.append({
             'Source': source.get('name', 'Unknown'),
             'Source Type': source.get('type', 'Entity'),
-            'Relationship': rel.get('type', 'RELATED_TO'),
+            'Relationship': relationship_type,
             'Target': target.get('name', 'Unknown'),
             'Target Type': target.get('type', 'Entity')
         })
@@ -189,10 +204,18 @@ def convert_graph_to_csv(graph_data):
         target = item.get('n2', {})
         rel = item.get('r', {})
         
+        # Determine relationship type based on data structure
+        if isinstance(rel, tuple) and len(rel) >= 2:
+            # The relationship type is the middle element of the tuple
+            relationship_type = rel[1]
+        else:
+            # Fallback for dictionary format or other formats
+            relationship_type = rel.get('type', 'RELATED_TO') if isinstance(rel, dict) else 'RELATED_TO'
+        
         rows.append({
             'Source': source.get('name', 'Unknown'),
             'Source Type': source.get('type', 'Entity'),
-            'Relationship': rel.get('type', 'RELATED_TO'),
+            'Relationship': relationship_type,
             'Target': target.get('name', 'Unknown'),
             'Target Type': target.get('type', 'Entity')
         })
