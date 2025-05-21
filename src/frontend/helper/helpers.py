@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 from pyvis.network import Network
+import html
+import tempfile
+import os
+import io
 
 def check_duplicate_relationship(neo4j_connector, relationship):
     """Check if a relationship already exists in Neo4j"""
@@ -43,132 +47,159 @@ def check_duplicate_relationship(neo4j_connector, relationship):
         st.error(f"Error checking for duplicate relationship: {e}")
         return False  # Assume no duplicate if there's an error
 
-def build_graph_query(entity_type, relationship_type, keyword_filter="", max_nodes=50):
-    """Build a Cypher query based on filters"""
-    where_clauses = []
+def build_graph_query(entity_type, relationship_type, keyword_filter, max_nodes):
+    """
+    Build a Cypher query based on filter options.
+    
+    Args:
+        entity_type: Type of entity to filter by
+        relationship_type: Type of relationship to filter by
+        keyword_filter: Keyword to filter entity names
+        max_nodes: Maximum number of nodes to return
+        
+    Returns:
+        str: A Cypher query for Neo4j
+    """
+    # Base query
+    query = "MATCH (n1)-[r]->(n2)"
+    
+    # Add filters
+    filters = []
+    if entity_type != "All":
+        filters.append(f"(n1.type = '{entity_type}' OR n2.type = '{entity_type}')")
+    
+    if relationship_type != "All":
+        filters.append(f"type(r) = '{relationship_type}'")
     
     if keyword_filter:
-        where_clauses.append(f"(n.name CONTAINS '{keyword_filter}' OR m.name CONTAINS '{keyword_filter}')")
+        filters.append(f"(n1.name CONTAINS '{keyword_filter}' OR n2.name CONTAINS '{keyword_filter}')")
     
-    where_clause = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+    # Combine filters if any
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
     
-    if entity_type == "All" and relationship_type == "All":
-        return f"MATCH (n)-[r]->(m){where_clause} RETURN n, r, m LIMIT {max_nodes}"
-    elif entity_type == "All":
-        return f"MATCH (n)-[r:{relationship_type}]->(m){where_clause} RETURN n, r, m LIMIT {max_nodes}"
-    elif relationship_type == "All":
-        return f"MATCH (n:{entity_type})-[r]->(m){where_clause} RETURN n, r, m LIMIT {max_nodes}"
-    else:
-        return f"MATCH (n:{entity_type})-[r:{relationship_type}]->(m){where_clause} RETURN n, r, m LIMIT {max_nodes}"
+    # Add limit and return
+    query += f" RETURN n1, r, n2 LIMIT {max_nodes}"
+    
+    return query
 
 def create_interactive_graph(graph_data):
-    """Create an interactive network visualization using pyvis"""
-    net = Network(height="550px", width="100%", bgcolor="#FFFFFF", font_color="black")
+    """
+    Create an interactive graph visualization using PyVis.
     
-    # Add nodes and edges
+    Args:
+        graph_data: List of graph data from Neo4j
+        
+    Returns:
+        str: HTML content of the graph
+    """
+    # Initialize a new network
+    net = Network(height="550px", width="100%", bgcolor="#FFFFFF", 
+                 directed=True, notebook=False, cdn_resources="remote")
+    
+    # Set physics options for better layout
+    net.barnes_hut(gravity=-50, central_gravity=0.01, spring_length=200, spring_strength=0.08)
+    net.toggle_physics(True)
+    
+    # Track added nodes to avoid duplicates
     added_nodes = set()
     
-    for record in graph_data:
-        source_id = str(record['n'].id)
-        source_name = record['n'].get('name', source_id)
-        source_type = list(record['n'].labels)[0] if record['n'].labels else ""
+    # Process graph data
+    for item in graph_data:
+        # Extract source and target nodes
+        source = item.get('n1', {})
+        target = item.get('n2', {})
+        rel = item.get('r', {})
         
-        target_id = str(record['m'].id)
-        target_name = record['m'].get('name', target_id)
-        target_type = list(record['m'].labels)[0] if record['m'].labels else ""
+        # Extract node properties
+        source_id = source.get('id', str(hash(source.get('name', ''))))
+        source_label = source.get('name', 'Unknown')
+        source_type = source.get('type', 'Entity')
         
-        relationship = record['r'].type
+        target_id = target.get('id', str(hash(target.get('name', ''))))
+        target_label = target.get('name', 'Unknown')
+        target_type = target.get('type', 'Entity')
         
-        # Add nodes
+        # Add source node if not already added
         if source_id not in added_nodes:
-            net.add_node(source_id, label=source_name, title=f"{source_name} ({source_type})", 
-                         color=get_node_color(source_type), group=source_type)
+            net.add_node(source_id, label=source_label, title=f"{source_label} ({source_type})",
+                        group=source_type, shape="dot")
             added_nodes.add(source_id)
-            
+        
+        # Add target node if not already added
         if target_id not in added_nodes:
-            net.add_node(target_id, label=target_name, title=f"{target_name} ({target_type})", 
-                         color=get_node_color(target_type), group=target_type)
+            net.add_node(target_id, label=target_label, title=f"{target_label} ({target_type})",
+                        group=target_type, shape="dot")
             added_nodes.add(target_id)
         
         # Add edge
-        net.add_edge(source_id, target_id, label=relationship, title=relationship)
+        rel_type = rel.get('type', 'RELATED_TO')
+        net.add_edge(source_id, target_id, label=rel_type, title=rel_type)
     
-    # Set physics options for better visualization
-    net.set_options("""
-    {
-      "physics": {
-        "forceAtlas2Based": {
-          "gravitationalConstant": -50,
-          "centralGravity": 0.01,
-          "springLength": 200,
-          "springConstant": 0.08
-        },
-        "solver": "forceAtlas2Based",
-        "stabilization": {
-          "iterations": 100
-        }
-      },
-      "interaction": {
-        "navigationButtons": true,
-        "keyboard": true
-      }
-    }
-    """)
+    # Generate and return the html content
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
+        path = tmp.name
+        net.save_graph(path)
+        with open(path, 'r', encoding='utf-8') as file:
+            html_string = file.read()
+        os.unlink(path)  # Remove the temporary file
     
-    # Save and return the HTML
-    html_path = "temp_network.html"
-    net.save_graph(html_path)
-    
-    with open(html_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
-    
-    return html_content
-
-def get_node_color(node_type):
-    """Return a color based on node type"""
-    color_map = {
-        "Gene": "#4285F4",     # Blue
-        "Protein": "#34A853",  # Green
-        "Drug": "#FBBC05",     # Yellow
-        "Disease": "#EA4335",  # Red
-        "Species": "#9C27B0",  # Purple
-        "Metabolite": "#FF9800", # Orange
-        "Pathway": "#2196F3"   # Light Blue
-    }
-    return color_map.get(node_type, "#607D8B")  # Default gray
+    return html_string
 
 def display_graph_as_table(graph_data):
-    """Display graph data in a tabular format"""
+    """
+    Display graph data as a table in Streamlit.
+    
+    Args:
+        graph_data: List of graph data from Neo4j
+    """
     rows = []
-    for record in graph_data:
-        source = record['n'].get('name', str(record['n'].id))
-        source_type = list(record['n'].labels)[0] if record['n'].labels else ""
-        target = record['m'].get('name', str(record['m'].id))
-        target_type = list(record['m'].labels)[0] if record['m'].labels else ""
-        relationship = record['r'].type
+    for item in graph_data:
+        source = item.get('n1', {})
+        target = item.get('n2', {})
+        rel = item.get('r', {})
         
         rows.append({
-            "Subject": source,
-            "Subject Type": source_type,
-            "Relationship": relationship,
-            "Object": target,
-            "Object Type": target_type
+            'Source': source.get('name', 'Unknown'),
+            'Source Type': source.get('type', 'Entity'),
+            'Relationship': rel.get('type', 'RELATED_TO'),
+            'Target': target.get('name', 'Unknown'),
+            'Target Type': target.get('type', 'Entity')
         })
     
     if rows:
-        st.dataframe(pd.DataFrame(rows))
+        df = pd.DataFrame(rows)
+        st.dataframe(df)
+    else:
+        st.info("No relationships to display")
 
 def convert_graph_to_csv(graph_data):
-    """Convert graph data to CSV format for download"""
-    rows = []
-    for record in graph_data:
-        source = record['n'].get('name', str(record['n'].id))
-        source_type = list(record['n'].labels)[0] if record['n'].labels else ""
-        target = record['m'].get('name', str(record['m'].id))
-        target_type = list(record['m'].labels)[0] if record['m'].labels else ""
-        relationship = record['r'].type
-        
-        rows.append(f"{source},{source_type},{relationship},{target},{target_type}")
+    """
+    Convert graph data to CSV format for download.
     
-    header = "Subject,SubjectType,Relationship,Object,ObjectType\n"
-    return header + "\n".join(rows)
+    Args:
+        graph_data: List of graph data from Neo4j
+        
+    Returns:
+        str: CSV data
+    """
+    rows = []
+    for item in graph_data:
+        source = item.get('n1', {})
+        target = item.get('n2', {})
+        rel = item.get('r', {})
+        
+        rows.append({
+            'Source': source.get('name', 'Unknown'),
+            'Source Type': source.get('type', 'Entity'),
+            'Relationship': rel.get('type', 'RELATED_TO'),
+            'Target': target.get('name', 'Unknown'),
+            'Target Type': target.get('type', 'Entity')
+        })
+    
+    if not rows:
+        return "No data"
+    
+    df = pd.DataFrame(rows)
+    csv_data = df.to_csv(index=False)
+    return csv_data

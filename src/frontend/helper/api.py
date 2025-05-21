@@ -1,8 +1,9 @@
 import requests
 import json
-import random
+from typing import Dict, Any, Optional
 
-API_BASE_URL = "http://localhost:8000/api/v1/"
+# Base URL for the API
+BASE_URL = "http://localhost:8000"
 
 # Sample data for development
 SAMPLE_PAPERS = [
@@ -101,16 +102,17 @@ SAMPLE_RELATIONSHIPS = [
     }
 ]
 
-def get_data_from_api(endpoint):
+def get_data_from_api(endpoint: str) -> Optional[Dict[str, Any]]:
     """
-    Fetch data from the API (mocked for development)
+    Make a GET request to the API.
     
     Args:
-        endpoint (str): API endpoint to call
+        endpoint: The API endpoint to call (without the base URL)
         
     Returns:
-        dict: JSON response from the API
+        The JSON response data or None if there was an error
     """
+    url = f"{BASE_URL}/{endpoint}"
     try:
         # For development: return mock data instead of calling actual API
         if "papers/search" in endpoint:
@@ -127,38 +129,33 @@ def get_data_from_api(endpoint):
             # Return sample relationships
             return SAMPLE_RELATIONSHIPS
         
-        # Fallback to actual API call (should not reach in demo mode)
-        response = requests.get(f"{API_BASE_URL}{endpoint}")
-        response.raise_for_status()
-        return response.json()
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.json()  # Return the JSON response
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching data from API: {e}")
-        return {"error": str(e)}
+        print(f"Error connecting to API: {e}")
+        return None
 
-def post_data_to_api(endpoint, data):
+def post_data_to_api(endpoint: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
-    Send data to the API (mocked for development)
+    Make a POST request to the API.
     
     Args:
-        endpoint (str): API endpoint to call
-        data (dict): Data to send
+        endpoint: The API endpoint to call (without the base URL)
+        data: The data to send in the request body
         
     Returns:
-        dict: JSON response from the API
+        The JSON response data or None if there was an error
     """
+    url = f"{BASE_URL}/{endpoint}"
     try:
         # For development: mock successful response
         if "relationships/confirm" in endpoint:
             return {"success": True, "message": "Relationship confirmed (mock)"}
         
-        # Fallback to actual API call (should not reach in demo mode)
-        response = requests.post(
-            f"{API_BASE_URL}{endpoint}",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(data)
-        )
-        response.raise_for_status()
-        return response.json()
+        response = requests.post(url, json=data)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.json()  # Return the JSON response
     except requests.exceptions.RequestException as e:
-        print(f"Error posting data to API: {e}")
-        return {"error": str(e)}
+        print(f"Error connecting to API: {e}")
+        return None

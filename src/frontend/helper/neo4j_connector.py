@@ -1,6 +1,5 @@
-from neo4j import GraphDatabase
-import random
 from collections import namedtuple
+import random
 
 # Mock Node and Relationship classes for development
 class MockNode:

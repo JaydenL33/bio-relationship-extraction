@@ -20,7 +20,7 @@ def validate_relationships_page(neo4j_connector):
         st.success("All relationships have been validated!")
         if st.button("Start Over"):
             st.session_state.current_rel_index = 0
-            st.experimental_rerun()
+            st.rerun()
         return
     
     current_rel = st.session_state.relationships[current_index]
@@ -34,7 +34,7 @@ def validate_relationships_page(neo4j_connector):
         st.write("Relationship data:", current_rel)
         if st.button("Skip Invalid Relationship"):
             st.session_state.current_rel_index += 1
-            st.experimental_rerun()
+            st.rerun()
         return
     
     # Check for duplicates in Neo4j
@@ -75,20 +75,29 @@ def validate_relationships_page(neo4j_connector):
         if st.button("👍 Confirm", key="confirm_btn"):
             # Call API to store the confirmed relationship
             try:
-                response = post_data_to_api("relationships/confirm", current_rel)
-                if response.get("success"):
+                # Convert to API format
+                relationship_data = {
+                    "entity1": current_rel['subject'],
+                    "relation": current_rel['predicate'],
+                    "entity2": current_rel['object']
+                }
+                
+                # Send to Neo4j add relationship endpoint
+                response = post_data_to_api("neo4j/add_relationship/", relationship_data)
+                
+                if response and response[0].get("message") == "Relationship added successfully":
                     st.success("Relationship confirmed and added to the knowledge graph!")
                 else:
-                    st.error(f"Error: {response.get('error', 'Unknown error')}")
+                    st.error(f"Error: {response[0].get('error', 'Unknown error')}")
             except Exception as e:
                 st.error(f"Error connecting to API: {str(e)}")
             
             # Move to next relationship
             st.session_state.current_rel_index += 1
-            st.experimental_rerun()
+            st.rerun()
     
     with col2:
         if st.button("👎 Reject", key="reject_btn"):
             # Skip this relationship
             st.session_state.current_rel_index += 1
-            st.experimental_rerun()
+            st.rerun()

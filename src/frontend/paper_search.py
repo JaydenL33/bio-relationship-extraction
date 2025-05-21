@@ -1,15 +1,52 @@
 import streamlit as st
 import pandas as pd
-from helper.api import get_data_from_api
+from helper.api import get_data_from_api, post_data_to_api
 
 def search_papers_page():
-    st.header("Search for Scientific Papers")
+    st.header("Scientific Paper Knowledge Base")
     
     # Initialize session state for selected papers and search results
     if "selected_papers" not in st.session_state:
         st.session_state.selected_papers = []
     if "search_results" not in st.session_state:
         st.session_state.search_results = []
+    if "mode" not in st.session_state:
+        st.session_state.mode = None
+    
+    # Display the main mode selection if no mode is currently selected
+    if st.session_state.mode is None:
+        st.subheader("Choose an Option")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📚 Search Existing Papers", use_container_width=True):
+                st.session_state.mode = "search_existing"
+                st.rerun()
+        
+        with col2:
+            if st.button("🔍 Download New Papers", use_container_width=True):
+                st.session_state.mode = "download_new"
+                st.rerun()
+        
+        # Add an explanation of the workflow
+        st.markdown("---")
+        st.markdown("""
+        ### How it works:
+        
+        **Search Existing Papers**: Query papers already in our database to find relevant information.
+        
+        **Download New Papers**: Search PubMed for new papers and add them to our knowledge base.
+        
+        After selecting papers through either method, you can extract relationships to build the knowledge graph.
+        """)
+        
+        # Return early if no mode is selected
+        return
+    
+    # Show a way to go back to mode selection
+    if st.button("← Back to Main Options"):
+        st.session_state.mode = None
+        st.rerun()
     
     # Display currently selected papers if any
     if st.session_state.selected_papers:
@@ -19,7 +56,7 @@ def search_papers_page():
         
         if st.button("Clear Selected Papers"):
             st.session_state.selected_papers = []
-            st.experimental_rerun()
+            st.rerun()
         
         # Show extract relationships button if papers are selected
         if st.button("Extract Relationships from Selected Papers"):
@@ -32,39 +69,149 @@ def search_papers_page():
                     )
                     
                     # Store the extracted relationships in session state
-                    st.session_state.relationships = extracted_relationships
-                    st.session_state.current_rel_index = 0
-                    
-                    st.success(f"Extracted {len(extracted_relationships)} potential relationships.")
-                    st.info("Go to 'Validate Relationships' to review and confirm these relationships.")
+                    if extracted_relationships:
+                        st.session_state.relationships = extracted_relationships
+                        st.session_state.current_rel_index = 0
+                        
+                        st.success(f"Extracted {len(extracted_relationships)} potential relationships.")
+                        st.info("Go to 'Validate Relationships' to review and confirm these relationships.")
+                    else:
+                        st.error("Failed to extract relationships. Check API connection.")
                 except Exception as e:
                     st.error(f"Error connecting to API: {str(e)}")
                     st.info("Please ensure the backend API is running.")
     
-    # Input for search keywords
-    st.subheader("Search for Papers")
-    search_query = st.text_input("Enter keywords to search for papers:", 
-                               placeholder="e.g., cancer immunotherapy, alzheimer's disease")
+    # SEARCH EXISTING PAPERS MODE
+    if st.session_state.mode == "search_existing":
+        st.subheader("Ask Questions About the Knowledge Base")
+        st.markdown("Send a question to the LLM to extract relationships from existing papers.")
+        
+        # Input for search keywords
+        search_query = st.text_input("Enter a question for the LLM:", 
+                                 placeholder="e.g., What is the relationship of Starfish?")
+        
+        # Search button
+        if st.button("Ask Question"):
+            if search_query:
+                with st.spinner("Processing your question..."):
+                    try:
+                        # Send the question to the API endpoint
+                        response = post_data_to_api("questions/", {
+                            "text": search_query
+                        })
+                        
+                        # Check if we got a valid response
+                        if response and isinstance(response, list) and len(response) > 0:
+                            # Extract the LLM answer and relationships
+                            llm_answer = response[0].get("response", {})
+                            relationships = llm_answer.get("relationships", [])
+                            explanation = llm_answer.get("explanation", "No explanation provided.")
+                            sources = response[0].get("sources", [])
+                            
+                            # Display the explanation to the user
+                            st.subheader("Answer")
+                            st.write(explanation)
+                            
+                            # Format and display the extracted relationships
+                            if relationships and len(relationships) > 0:
+                                st.subheader(f"Extracted Relationships ({len(relationships)})")
+                                
+                                # Convert relationships to the format our system uses
+                                formatted_relationships = []
+                                for rel in relationships:
+                                    formatted_rel = {
+                                        'subject': rel.get('entity1', ''),
+                                        'subject_type': 'Entity',  # Default type if not specified
+                                        'predicate': rel.get('relation', 'RELATED_TO'),
+                                        'object': rel.get('entity2', ''),
+                                        'object_type': 'Entity',  # Default type if not specified
+                                        'context': explanation,
+                                        'paper_title': f"Generated from question: {search_query}"
+                                    }
+                                    formatted_relationships.append(formatted_rel)
+                                
+                                # Display the relationships in a table
+                                rel_df = pd.DataFrame([
+                                    {
+                                        'Subject': rel['subject'],
+                                        'Relationship': rel['predicate'],
+                                        'Object': rel['object']
+                                    } for rel in formatted_relationships
+                                ])
+                                st.dataframe(rel_df)
+                                
+                                # Store the relationships for validation
+                                if st.button("Validate These Relationships"):
+                                    st.session_state.relationships = formatted_relationships
+                                    st.session_state.current_rel_index = 0
+                                    st.success("Relationships ready for validation!")
+                                    st.info("Go to 'Validate Relationships' to review and confirm these relationships.")
+                            else:
+                                st.warning("No relationships were extracted from the response.")
+                            
+                            # Display source documents if available
+                            if sources and len(sources) > 0:
+                                st.subheader("Source Documents")
+                                for i, source in enumerate(sources):
+                                    if "node" in source and "text" in source["node"]:
+                                        with st.expander(f"Source {i+1}"):
+                                            file_name = source["node"].get("extra_info", {}).get("file_name", "Unknown")
+                                            st.markdown(f"**Document**: {file_name}")
+                                            st.markdown(source["node"]["text"])
+                        else:
+                            st.error("Failed to get a valid response from the API.")
+                    except Exception as e:
+                        st.error(f"Error connecting to API: {str(e)}")
+                        st.info("Please ensure the backend API is running.")
+            else:
+                st.warning("Please enter a question.")
     
-    # Search button
-    if st.button("Search") and search_query:
-        # Call API to search for papers
-        with st.spinner("Searching for papers..."):
-            try:
-                papers = get_data_from_api(f"papers/search?query={search_query}")
-                
-                if not papers or len(papers) == 0:
-                    st.warning("No papers found for your search query.")
-                    st.session_state.search_results = []
-                else:
-                    st.success(f"Found {len(papers)} papers.")
-                    # Store search results in session state
-                    st.session_state.search_results = papers
-            except Exception as e:
-                st.error(f"Error connecting to API: {str(e)}")
-                st.info("Please ensure the backend API is running.")
+    # DOWNLOAD NEW PAPERS MODE
+    elif st.session_state.mode == "download_new":
+        st.subheader("Download New Papers from PubMed")
+        st.markdown("Search PubMed for new papers and add them to our knowledge base.")
+        
+        # Input for search keywords
+        search_query = st.text_input("Enter keywords to search PubMed:", 
+                                 placeholder="e.g., cancer immunotherapy, alzheimer's disease")
+        
+        # Options for download
+        max_papers = st.slider("Maximum number of papers to download", min_value=1, max_value=10, value=5)
+        
+        # Search button
+        if st.button("Search PubMed"):
+            if search_query:
+                # Call API to search for papers
+                with st.spinner("Searching PubMed and downloading papers..."):
+                    try:
+                        # Use the PubMed search API endpoint
+                        response = post_data_to_api("pubmed/search/", {
+                            "query": search_query,
+                            "max_documents": max_papers
+                        })
+                        
+                        if response and response.get("status") == "success":
+                            st.success(f"Downloaded and indexed {response.get('document_count')} papers.")
+                            # Get actual paper results
+                            papers = get_data_from_api(f"papers/search?query={search_query}")
+                            
+                            if not papers or len(papers) == 0:
+                                st.warning("No papers found for your search query.")
+                                st.session_state.search_results = []
+                            else:
+                                # Store search results in session state
+                                st.session_state.search_results = papers
+                                st.info(f"The downloaded papers are now available in the database.")
+                        else:
+                            st.warning("No papers found for your search query or download failed.")
+                            st.session_state.search_results = []
+                    except Exception as e:
+                        st.error(f"Error connecting to API: {str(e)}")
+                        st.info("Please ensure the backend API is running.")
+            else:
+                st.warning("Please enter search keywords.")
     
-    # Display search results and paper selection options
+    # Display search results and paper selection options (common to both modes)
     if st.session_state.search_results:
         st.subheader("Search Results")
         
@@ -127,4 +274,4 @@ def search_papers_page():
             # Update selection states
             for paper_id in st.session_state.paper_selections:
                 st.session_state.paper_selections[paper_id] = True
-            st.experimental_rerun()
+            st.rerun()
