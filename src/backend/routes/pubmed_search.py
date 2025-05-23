@@ -23,49 +23,37 @@ def extract_metadata(abstract_text, pmid):
         "journal": "",
         "title": "",
         "authors": [],
-        "author_info": [],
-        "abstract": "",
-        "key_points": [],
         "doi": ""
     }
-    
-    # Extract journal (first line, typically journal citation)
-    journal_match = re.match(r'([^\n]+)\n', abstract_text)
-    if journal_match:
-        study["journal"] = journal_match.group(1).strip()
-    
-    # Extract title (after journal, before authors)
-    title_match = re.search(r'\n\n([^\n]+)\n\n', abstract_text)
-    if title_match:
-        study["title"] = title_match.group(1).strip()
-    
-    # Extract authors (line before "Author information:")
-    authors_match = re.search(r'\n\n([^\n]+)\n\nAuthor information:', abstract_text)
-    if authors_match:
-        authors_line = authors_match.group(1).strip()
+
+    # Split the abstract text into sections based on double newlines
+    sections = abstract_text.split('\n\n')
+
+    # Ensure there are enough sections to extract basic metadata
+    if len(sections) >= 5:
+        # Journal: First section
+        study["journal"] = sections[0].strip()
+
+        # Title: Second section
+        study["title"] = sections[1].strip()
+
+        # Authors: Third section, split by commas
+        authors_line = sections[2].strip()
         study["authors"] = [author.strip() for author in authors_line.split(',')]
-    
-    # Extract author information (between "Author information:" and abstract)
-    author_info_match = re.search(r'Author information:\n((?:\(.*?\)[^\n]*\n)+)', abstract_text)
-    if author_info_match:
-        author_info_lines = author_info_match.group(1).strip().split('\n')
-        study["author_info"] = [line.strip() for line in author_info_lines]
-    # Extract DOI
-    doi_match = re.search(r'DOI: (10\.\d{4}/[^\s]+)', abstract_text)
-    if doi_match:
-        study["doi"] = doi_match.group(1).strip()
-    
-    # Generate key points by summarizing abstract
-    sentences = study["abstract"].split('. ')
-    key_points = []
-    for sentence in sentences:
-        if any(keyword in sentence.lower() for keyword in [
-            'study', 'investigate', 'find', 'result', 'show', 'demonstrate', 
-            'implication', 'role', 'effect', 'compare', 'observe', 'develop'
-        ]):
-            key_points.append(sentence.strip() + ('.' if not sentence.endswith('.') else ''))
-    study["key_points"] = key_points[:5]  # Limit to 5 key points
-    
+
+        # Author Information: Fourth section, lines after "Author information:"
+        # author_info_section = sections[3]
+        # if author_info_section.startswith("Author information:"):
+        #     author_info_lines = author_info_section.split('\n')[1:]
+        #     study["author_info"] = [line.strip() for line in author_info_lines]
+        # DOI: Search sections for "DOI:"
+        for section in sections:
+            if section.startswith("DOI:"):
+                doi_match = re.search(r'DOI: (.+)', section)
+                if doi_match:
+                    study["doi"] = doi_match.group(1).strip()
+                break
+
     return study
 
 @router.post("/pubmed/search/")

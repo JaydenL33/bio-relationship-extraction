@@ -5,7 +5,7 @@ from pyvis.network import Network
 import matplotlib.pyplot as plt
 
 # Import local modules
-from helper.api import get_data_from_api, post_data_to_api
+from helper.api import get_data_from_api
 from helper.neo4j_connector import Neo4jConnector
 from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from paper_search import search_papers_page

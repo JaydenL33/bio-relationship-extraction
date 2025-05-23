@@ -160,7 +160,18 @@ def search_papers_page():
                                     st.subheader("Source Documents")
                                     for i, source in enumerate(sources):
                                         if "node" in source and "text" in source["node"]:
-                                            with st.expander(f"Source: {source["node"].get("extra_info", {}).get("file_name", "Unknown")} | Score: {float(source['score']):.2f}"):
+                                            extra_info = source["node"].get("extra_info", {})
+                                            title = extra_info.get("title", "Untitled Paper")
+                                            with st.expander(f"Source: {title} | Score: {float(source['score']):.2f}"):
+                                                # Display metadata in a structured way
+                                                st.markdown(f"**Title**: {extra_info.get('title', 'Unknown')}")
+                                                st.markdown(f"**Authors**: {extra_info.get('authors', 'Unknown')}")
+                                                st.markdown(f"**Journal**: {extra_info.get('journal', 'Unknown')}")
+                                                st.markdown(f"**PMID**: {extra_info.get('pmid', 'Unknown')}")
+                                                st.markdown(f"**DOI**: {extra_info.get('doi', 'Unknown')}")
+                                                st.markdown(f"**SCORE**: {float(source['score']):.2f}")
+                                                st.markdown("---")
+                                                st.markdown("**Content:**")
                                                 st.markdown(source["node"]["text"])
                                 
                                 # Remove auto-redirect
@@ -174,9 +185,17 @@ def search_papers_page():
                                 st.subheader("Source Documents")
                                 for i, source in enumerate(sources):
                                     if "node" in source and "text" in source["node"]:
-                                        with st.expander(f"Source {i+1}"):
-                                            file_name = source["node"].get("extra_info", {}).get("file_name", "Unknown")
-                                            st.markdown(f"**Document**: {file_name}")
+                                        extra_info = source["node"].get("extra_info", {})
+                                        title = extra_info.get("title", "Untitled Paper")
+                                        with st.expander(f"Source: {title} | Score: {float(source['score']):.2f}"):
+                                            # Display metadata in a structured way
+                                            st.markdown(f"**Title**: {extra_info.get('title', 'Unknown')}")
+                                            st.markdown(f"**Authors**: {extra_info.get('authors', 'Unknown')}")
+                                            st.markdown(f"**Journal**: {extra_info.get('journal', 'Unknown')}")
+                                            st.markdown(f"**PMID**: {extra_info.get('pmid', 'Unknown')}")
+                                            st.markdown(f"**DOI**: {extra_info.get('doi', 'Unknown')}")
+                                            st.markdown("---")
+                                            st.markdown("**Content:**")
                                             st.markdown(source["node"]["text"])
                         else:
                             st.error("Failed to get a valid response from the API.")
@@ -212,19 +231,6 @@ def search_papers_page():
                         
                         if response and response.get("status") == "success":
                             st.success(f"Downloaded and indexed {response.get('document_count')} papers.")
-                            # Get actual paper results
-                            papers = get_data_from_api(f"papers/search?query={search_query}")
-                            
-                            if not papers or len(papers) == 0:
-                                st.warning("No papers found for your search query.")
-                                st.session_state.search_results = []
-                            else:
-                                # Store search results in session state
-                                st.session_state.search_results = papers
-                                st.info(f"The downloaded papers are now available in the database.")
-                        else:
-                            st.warning("No papers found for your search query or download failed.")
-                            st.session_state.search_results = []
                     except Exception as e:
                         st.error(f"Error connecting to API: {str(e)}")
                         st.info("Please ensure the backend API is running.")

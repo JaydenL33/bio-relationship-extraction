@@ -1,9 +1,6 @@
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, Document
 from llama_index.vector_stores.postgres import PGVectorStore
-import os
-import shutil
 
-from config import get_neo4j_connection
 from models.structured_response import Relationship
 from services.initalise_vector_store import init_vector_store
 
