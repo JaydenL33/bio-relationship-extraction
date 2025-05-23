@@ -73,6 +73,12 @@ MAKE SURE YOU'RE IN THE VIRTUALENV/POETRY ENV
   - Import the provided Postman collection from `docs/postman/bio-relationship-api.json`
   - Use Postman to test API endpoints at `http://localhost:8000`
   - Available endpoints include document upload, relationship queries, and entity searches
+- **Alternative LLM Options**:
+  - While Ollama is recommended for local inference, you can use other models
+  - LlamaIndex supports various LLM providers through connectors
+  - Simply install the appropriate connector package (e.g., `pip install llama-index-llms-openai`)
+  - Modify `src/backend/services/llm.py` to use your preferred model
+  - Options include OpenAI, Anthropic, Hugging Face, and many others if you can't run models locally
 
 ## Example Queries
 - "What metabolites are produced by Starfish"
@@ -90,6 +96,7 @@ MAKE SURE YOU'RE IN THE VIRTUALENV/POETRY ENV
 MIT License - see the LICENSE file for details.
 
 ## Authors
-Jayden Lee - Student @ University of Technology Sydney and Machine Learning Engineer @ AMP
+Jayden Lee - Graduate @ University of Technology Sydney and Machine Learning Engineer @ AMP
 ### Get in Contact
 Add me on LinkedIn - https://www.linkedin.com/in/jayden-l33/
+But please read all of the docs before doing so!
