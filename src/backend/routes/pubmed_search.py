@@ -4,6 +4,8 @@ import re
 import urllib.request
 from time import sleep
 import os
+import json
+import uuid
 
 from services.initalise_vector_store import upload_documents
 
@@ -12,6 +14,47 @@ router = APIRouter()
 class PubmedSearchRequest(BaseModel):
     query: str = Field(..., description="Keywords to search for in PubMed")
     max_documents: int = Field(10, description="Maximum number of documents to download (max 10)")
+
+def extract_metadata(abstract_text, pmid):
+    """Extract metadata from a single abstract text."""
+    study = {
+        "id": str(uuid.uuid4()),
+        "pmid": pmid,
+        "journal": "",
+        "title": "",
+        "authors": [],
+        "doi": ""
+    }
+
+    # Split the abstract text into sections based on double newlines
+    sections = abstract_text.split('\n\n')
+
+    # Ensure there are enough sections to extract basic metadata
+    if len(sections) >= 5:
+        # Journal: First section
+        study["journal"] = sections[0].strip()
+
+        # Title: Second section
+        study["title"] = sections[1].strip()
+
+        # Authors: Third section, split by commas
+        authors_line = sections[2].strip()
+        study["authors"] = [author.strip() for author in authors_line.split(',')]
+
+        # Author Information: Fourth section, lines after "Author information:"
+        # author_info_section = sections[3]
+        # if author_info_section.startswith("Author information:"):
+        #     author_info_lines = author_info_section.split('\n')[1:]
+        #     study["author_info"] = [line.strip() for line in author_info_lines]
+        # DOI: Search sections for "DOI:"
+        for section in sections:
+            if section.startswith("DOI:"):
+                doi_match = re.search(r'DOI: (.+)', section)
+                if doi_match:
+                    study["doi"] = doi_match.group(1).strip()
+                break
+
+    return study
 
 @router.post("/pubmed/search/")
 async def search_pubmed(request: PubmedSearchRequest = Body(...)):
@@ -78,11 +121,21 @@ async def search_pubmed(request: PubmedSearchRequest = Body(...)):
                     
                 abs_fields = abstract.split("\n\n")
                 if len(abs_fields) >= 5:  # Make sure we have enough fields
-                    filename = f"{pmid[retstart + i]}.txt"
+                    current_pmid = pmid[retstart + i]
+                    
+                    # Save text file with abstract content
+                    filename = f"{current_pmid}.txt"
                     filepath = os.path.join(documents_dir, filename)
                     with open(filepath, "w", encoding='utf-8') as fp_text:
                         fp_text.write(abs_fields[4].replace("\n", ""))
                     downloaded_files.append(filepath)
+                    
+                    # Extract and save metadata to JSON
+                    metadata = extract_metadata(abstract, current_pmid)
+                    json_filename = f"{current_pmid}.json"
+                    json_filepath = os.path.join(documents_dir, json_filename)
+                    with open(json_filepath, 'w', encoding='utf-8') as fp_json:
+                        json.dump(metadata, fp_json, indent=4, ensure_ascii=False)
             
             if len(downloaded_files) >= request.max_documents or retstart + retmax >= total_abstract_count:
                 break
