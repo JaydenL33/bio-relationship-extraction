@@ -133,7 +133,8 @@ def search_papers_page():
                                 # Store the relationships for validation and direct user to confirmation page
                                 st.session_state.relationships = formatted_relationships
                                 st.session_state.current_rel_index = 0
-                                st.success(f"Found {len(formatted_relationships)} relationships! Redirecting to validation page...")
+                                st.success(f"Found {len(formatted_relationships)} relationships!")
+                                st.info("Please go to the **Validate Relationships** tab in the sidebar to review these relationships.")
                                 
                                 # Display source documents if available before redirecting
                                 if sources and len(sources) > 0:
@@ -145,9 +146,9 @@ def search_papers_page():
                                                 st.markdown(f"**Document**: {file_name}")
                                                 st.markdown(source["node"]["text"])
                                 
-                                # Auto-redirect to validation page
-                                st.session_state.redirect_to_validate = True
-                                st.rerun()
+                                # Remove auto-redirect
+                                # st.session_state.redirect_to_validate = True
+                                # st.rerun()
                             else:
                                 st.warning("No relationships were extracted from the response.")
                             

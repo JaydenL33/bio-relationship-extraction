@@ -116,10 +116,10 @@ def validate_relationships_page(neo4j_connector: Neo4jConnector):
 def _process_confirmation(neo4j_connector):
     try:
         current_rel = st.session_state.relationships[st.session_state.current_rel_index]
-        subject = current_rel['subject']
-        object_entity = current_rel['object']
-        subject_type = current_rel['subject_type']
-        object_type = current_rel['object_type']
+        subject = str(current_rel['subject']).lower()
+        object_entity = str(current_rel['object']).lower()
+        subject_type = str(current_rel['subject_type']).lower()
+        object_type = str(current_rel['object_type']).lower()
         predicate = current_rel['predicate']
         paper_title = current_rel.get('paper_title', 'Unknown Paper')
         context = current_rel.get('context', 'No context provided')
@@ -147,20 +147,23 @@ def _process_confirmation(neo4j_connector):
         result = neo4j_connector.execute_query(query, params)
         success = result is not None and len(result) > 0
 
-        # Store the last confirmed relationship for the details page
+        # Store the confirmed relationship and move to the next one
         if success:
-            st.session_state.last_confirmed_relationship = current_rel
             st.session_state.confirmed_relationships.append(current_rel)
             st.session_state.current_rel_index += 1
-            
-            # Set flag to show relationship details page
-            st.session_state.show_relationship_details = True
+            st.session_state.result_notification = {
+                "success": True,
+                "message": "Relationship successfully added to the knowledge graph!",
+                "time": time.time()
+            }
         else:
             st.session_state.result_notification = {
                 "success": False,
                 "message": "Failed to add relationship to the knowledge graph.",
                 "time": time.time()
             }
+            # Skip this relationship since we failed
+            st.session_state.current_rel_index += 1
 
     except Exception as e:
         st.session_state.result_notification = {
@@ -168,3 +171,5 @@ def _process_confirmation(neo4j_connector):
             "message": f"Error adding relationship: {str(e)}",
             "time": time.time()
         }
+        # Skip this relationship since we failed
+        st.session_state.current_rel_index += 1

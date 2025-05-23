@@ -11,7 +11,6 @@ from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from paper_search import search_papers_page
 from confirm_relationships import validate_relationships_page
 from knowledger_graph import view_graph_page
-from relationship_details import show_relationship_details  # Add this import
 
 def main():
     st.set_page_config(page_title="Biomedical Knowledge Graph Builder", layout="wide")
@@ -26,8 +25,10 @@ def main():
         st.session_state.redirect_to_validate = False
     if "result_notification" not in st.session_state:
         st.session_state.result_notification = None
-    if "show_relationship_details" not in st.session_state:
-        st.session_state.show_relationship_details = False
+    
+    # Remove show_relationship_details flag
+    if "return_to_main" not in st.session_state:
+        st.session_state.return_to_main = False
 
     # Connect to the Neo4j database
     neo4j_connector = Neo4jConnector(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
@@ -47,12 +48,13 @@ def main():
     if st.session_state.redirect_to_validate:
         st.session_state.redirect_to_validate = False
         page = "Validate Relationships"
-    elif st.session_state.show_relationship_details:
-        page = "Relationship Details"
+    elif st.session_state.return_to_main:
+        st.session_state.return_to_main = False
+        page = "Paper Management"
     else:
         page = st.sidebar.radio(
             "Go to",
-            ["Paper Management", "Validate Relationships", "View Knowledge Graph", "Relationship Details"],
+            ["Paper Management", "Validate Relationships", "View Knowledge Graph"],
             key="navigation"
         )
 
@@ -63,8 +65,6 @@ def main():
         validate_relationships_page(neo4j_connector)
     elif page == "View Knowledge Graph":
         view_graph_page(neo4j_connector)
-    elif page == "Relationship Details":
-        show_relationship_details(neo4j_connector)
     
     # Debug information in sidebar
     st.sidebar.markdown("---")
