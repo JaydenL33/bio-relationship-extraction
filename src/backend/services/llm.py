@@ -7,7 +7,12 @@ from llama_index.core import VectorStoreIndex, Settings, StorageContext
 import sys
 from state import app_state
 
-# Configuration
+# Configuration | This Base URL is used to connect to the Ollama server
+# and should be set to the address of the server running the Ollama models.
+# For local testing, this is usually http://localhost:11434
+# But for WSL, you need to use the IP address of the WSL instance.
+# You can check that by running ipconfig in PowerShell and looking for the WSL adapter.
+# If you can't figure this out, just ask your instructor or email me.
 base_url = "http://172.20.80.1:11434"
 
 # Database configuration
@@ -20,8 +25,6 @@ DB_CONFIG = {
 }
 
 # Initialize Ollama models
-
-
 def setup_models():
     Settings.embed_model = OllamaEmbedding(
         model_name="bge-m3:latest",

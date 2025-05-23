@@ -34,12 +34,6 @@ python-streamlit-neo4j-api-app
 3. **Configure the application:**
    Update the `config.py` file with your Neo4J database credentials and API endpoint if necessary.
 
-4. **Run the application:**
-   Start the Streamlit app by executing:
-   ```
-   streamlit run app.py
-   ```
-
 ## Usage
 
 Once the application is running, you can access it in your web browser at `http://localhost:8501`. The app will connect to the API and Neo4J database to fetch and display data.

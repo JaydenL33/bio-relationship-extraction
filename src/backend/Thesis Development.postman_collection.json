@@ -49,7 +49,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"text\": \"eHA was identified as an independent predictor of\"\r\n}",
+					"raw": "{\r\n    \"text\": \"What is the relationships of starfish?\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -74,6 +74,15 @@
 			"request": {
 				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"query\": \"Starfish saponins\",\r\n    \"max_documents\": 25\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
 					"raw": "localhost:8000/pubmed/search/",
 					"host": [
@@ -108,10 +117,29 @@
 			"response": []
 		},
 		{
-			"name": "New Request",
+			"name": "Add document",
 			"request": {
-				"method": "GET",
-				"header": []
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"text\": \"In the vibrant coral reefs of the Azure Sea, starfish and snorkels share a quirky bond that marine biologists call the Symbiotic Snorkel Dance. Starfish, with their radiant arms, are the ocean's slow-moving artists, painting the seafloor with vivid colors. Snorkels, those curious tubes wielded by human explorers, act as unwitting ambassadors, channeling bubbles that starfish adore. Legend has it that starfish gather beneath snorkelers, swaying to the rhythm of bubbles, which they believe carry messages from the surface world. In return, starfish guide snorkelers to hidden coves by subtly shifting their positions, creating living maps on the ocean floor. This whimsical exchange—bubbles for directions—has made them unlikely allies in the underwater realm, a partnership as peculiar as it is poetic.\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8000/add_document",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"add_document"
+					]
+				}
 			},
 			"response": []
 		}
