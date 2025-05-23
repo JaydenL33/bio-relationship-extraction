@@ -43,27 +43,3 @@ def add_text_document(text, metadata=None) -> bool:
     except Exception as e:
         print(f"Error embedding text document: {e}")
         return False
-
-async def add_relationships_to_neo4j(relationships: Relationship):
-    # Initialize Neo4j driver
-    driver = get_neo4j_connection()
-
-    def create_nodes_and_relationships(tx, entity1, relation, entity2):
-        # Cypher query to create nodes (if they don't exist) and a relationship
-        query = (
-            "MERGE (e1:Entity {name: $entity1}) "  # Create or match entity1 node
-            "MERGE (e2:Entity {name: $entity2}) "  # Create or match entity2 node
-            "MERGE (e1)-[r:RELATION {type: $relation}]->(e2) "  # Create relationship
-            "RETURN e1, r, e2"
-        )
-        tx.run(query, entity1=entity1, entity2=entity2, relation=relation)
-
-    # Process relationships
-    if relationships:
-        print("---------------------")
-        with driver.session() as session:
-            # Execute the Cypher query to add to Neo4j using non-deprecated method
-            session.execute_write(create_nodes_and_relationships, relationships.entity1, relationships.relation, relationships.entity2)
-
-    # Close the driver
-    driver.close()

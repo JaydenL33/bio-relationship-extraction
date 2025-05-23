@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from models.structured_response import Relationship
-from services.add_document_service import add_relationships_to_neo4j, add_text_document
+from services.add_document_service import add_text_document
 
 
 
@@ -30,17 +30,6 @@ async def add_document(document: Document = Body(...)):
     try:
         add_text_document(document.text, document.metadata)
         return {"message": "Document added successfully"}, 201
-    except Exception as e:
-        print(f"Error processing query: {e}")
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-# Addings a relationship to our Neo4j database
-@router.post("/neo4j/add_relationship/")
-async def add_relationship(relationships: Relationship = Body(...)):
-    try:
-        # Assuming you have a function to add a relationship in your service
-        await add_relationships_to_neo4j(relationships)
-        return {"message": "Relationship added successfully"}, 201
     except Exception as e:
         print(f"Error processing query: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
