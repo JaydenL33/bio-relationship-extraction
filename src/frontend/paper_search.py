@@ -73,6 +73,17 @@ def search_papers_page():
                         st.session_state.relationships = extracted_relationships
                         st.session_state.current_rel_index = 0
                         
+                        # Display relationships in a table for preview
+                        st.subheader(f"Extracted Relationships ({len(extracted_relationships)})")
+                        relationships_df = pd.DataFrame([
+                            {
+                                "Subject": rel["subject"], 
+                                "Relationship": rel["predicate"], 
+                                "Object": rel["object"]
+                            } for rel in extracted_relationships
+                        ])
+                        st.dataframe(relationships_df, use_container_width=True)
+                        
                         st.success(f"Extracted {len(extracted_relationships)} potential relationships.")
                         st.info("Go to 'Validate Relationships' to review and confirm these relationships.")
                     else:
@@ -129,21 +140,27 @@ def search_papers_page():
                                         'paper_title': f"Generated from question: {search_query}"
                                     }
                                     formatted_relationships.append(formatted_rel)
+                                st.info("Please go to the **Validate Relationships** tab in the sidebar to review these relationships.")
+                                # Display relationships in a table for preview
+                                relationships_df = pd.DataFrame([
+                                    {
+                                        "Subject": rel["subject"], 
+                                        "Relationship": rel["predicate"], 
+                                        "Object": rel["object"]
+                                    } for rel in formatted_relationships
+                                ])
+                                st.dataframe(relationships_df, use_container_width=True)
                                 
                                 # Store the relationships for validation and direct user to confirmation page
                                 st.session_state.relationships = formatted_relationships
                                 st.session_state.current_rel_index = 0
-                                st.success(f"Found {len(formatted_relationships)} relationships!")
-                                st.info("Please go to the **Validate Relationships** tab in the sidebar to review these relationships.")
                                 
                                 # Display source documents if available before redirecting
                                 if sources and len(sources) > 0:
                                     st.subheader("Source Documents")
                                     for i, source in enumerate(sources):
                                         if "node" in source and "text" in source["node"]:
-                                            with st.expander(f"Source {i+1}"):
-                                                file_name = source["node"].get("extra_info", {}).get("file_name", "Unknown")
-                                                st.markdown(f"**Document**: {file_name}")
+                                            with st.expander(f"Source: {source["node"].get("extra_info", {}).get("file_name", "Unknown")} | Score: {float(source['score']):.2f}"):
                                                 st.markdown(source["node"]["text"])
                                 
                                 # Remove auto-redirect

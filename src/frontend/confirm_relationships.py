@@ -120,7 +120,7 @@ def _process_confirmation(neo4j_connector):
         object_entity = str(current_rel['object']).lower()
         subject_type = str(current_rel['subject_type']).lower()
         object_type = str(current_rel['object_type']).lower()
-        predicate = current_rel['predicate']
+        predicate = str(current_rel['predicate']).upper()
         paper_title = current_rel.get('paper_title', 'Unknown Paper')
         context = current_rel.get('context', 'No context provided')
 
