@@ -16,7 +16,8 @@ Undergraduate thesis at UTS focusing on:
 - **Frontend**: Simple web interface for querying and visualization
 
 ## Technical Requirements
-- Python 3.12
+- Python 3.12 for Backend
+- Python 3.11 for Frontend
 - Poetry (v2.1.2 or newer)
 - Docker and Docker Compose
 - NVIDIA GPU with CUDA support (recommended)

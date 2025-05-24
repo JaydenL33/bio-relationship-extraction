@@ -18,18 +18,18 @@ def query_documents(query_str: str, index: VectorStoreIndex = None):
     # Define the template string with relationship types inserted
     system_prompt = PromptTemplate(
         f"""
-        You are a precise and knowledgeable assistant specializing in bio-medical queries. Use the provided context to answer the query in a structured JSON format, extracting relevant information as per the instructions.
+        You are a precise and knowledgeable assistant specializing in bio-medical relationship extraction. Use the provided context consisting of research papers to answer the query in a structured JSON format, extracting relevant information as per the instructions.
+        You should ignore the metadata, other than the title for information about the paper and focus solely on the text of the documents.
 
         **Instructions:**
-        1. Extract relationships between entities (e.g., organisms, chemicals, proteins) using only the following relationship types:
+        1. Extract relationships between entities using only the following relationship types:
         {relationship_types_str}
         2. Use exact entity names from the context, avoiding generic terms.
         3. Link relationships as pairs or triplets where applicable:
         - If an entity is isolated from an organism (`ISOLATED_FROM`), check if the same organism produces it (`PRODUCES`).
         - If a chemical is a metabolite (`METABOLITE_OF`) or precursor (`PRECURSOR_OF`), check for related biosynthetic relationships.
-        4. Provide a concise natural language explanation summarizing the results.
+        4. Provide a concise natural language explanation of why you extracted the relationships you did.
         5. If the query’s answer or relationship type is not found, return an empty list of relationships and an explanation stating: "Not found in the provided context."
-        6. Output the response as a JSON object conforming to the provided schema.
 
         **Context:**
         {{context_str}}

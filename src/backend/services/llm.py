@@ -6,7 +6,6 @@ from models.structured_response import BioMedicalResponse
 from llama_index.core import VectorStoreIndex, Settings, StorageContext
 import sys
 from state import app_state
-
 # Configuration | This Base URL is used to connect to the Ollama server
 # and should be set to the address of the server running the Ollama models.
 # For local testing, this is usually http://localhost:11434
@@ -33,6 +32,9 @@ def setup_models():
     Settings.llm = Ollama(
         model="deepseek-r1:14b",
         base_url=base_url,
+        temperature=0.3,  # Set temperature for more deterministic responses
+        # top_p=0.9,  # Set top_p for nucleus sampling
+        # verbose=True,  # Enable verbose mode
     ).as_structured_llm(output_cls=BioMedicalResponse)
 
 
