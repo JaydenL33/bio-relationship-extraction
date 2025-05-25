@@ -97,10 +97,7 @@ def validate_relationships_page(neo4j_connector: Neo4jConnector):
             st.markdown(f"**Object**: {current_rel['object']}")
             st.markdown(f"**Type**: {current_rel['object_type']}")
         st.markdown("---")
-        paper_title = current_rel.get('paper_title', 'Unknown Paper')
-        context = current_rel.get('context', 'No context provided')
-        st.markdown(f"**Source Paper**: {paper_title}")
-        st.markdown(f"**Excerpt**: \"{context}\"")
+
 
     # Buttons for validation
     col1, col2 = st.columns(2)

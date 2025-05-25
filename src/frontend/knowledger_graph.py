@@ -3,22 +3,17 @@ import pandas as pd
 from helper.helpers import build_graph_query, create_interactive_graph, display_graph_as_table, convert_graph_to_csv
 
 def view_graph_page(neo4j_connector):
-    st.header("Knowledge Graph Visualization")
+    st.header("Knowledge Graph Visualisation")
     
     # Options for filtering the graph
     st.subheader("Filter Options")
-    col1, col2 = st.columns(2)
+    cols = st.columns(1)
     
-    with col1:
-        entity_type = st.selectbox("Filter by Entity Type:", 
-                                  ["All", "Gene", "Protein", "Drug", "Disease", 
-                                   "Species", "Metabolite", "Pathway"])
-    
-    with col2:
+    with cols[0]:
         relationship_type = st.selectbox("Filter by Relationship Type:", 
-                                        ["All", "INHIBITS", "ACTIVATES", "TREATS", 
-                                         "CAUSES", "INTERACTS_WITH", "ISOLATED_FROM", 
-                                         "ASSOCIATED_WITH", "PART_OF"])
+                                        ["ALL", "ISOLATED_FROM", "METABOLITE_OF", "PRODUCES", "DEGRADED_BY", 
+                                         "BIOSYNTHESIZED_BY", "INHIBITS", "PRECURSOR_OF", 
+                                         "UPTAKEN_BY", "MODIFIES", "SEQUESTERS", "CONTAINS"])
     
     # Additional filter options
     with st.expander("Advanced Filters"):
@@ -26,11 +21,11 @@ def view_graph_page(neo4j_connector):
         max_nodes = st.slider("Maximum number of nodes to display", 10, 200, 50)
     
     # Query to get graph data based on filters
-    query = build_graph_query(entity_type, relationship_type, keyword_filter, max_nodes)
+    query = build_graph_query(relationship_type, keyword_filter, max_nodes)
     
     # Fetch and visualize graph
-    if st.button("Visualize Graph"):
-        with st.spinner("Generating visualization..."):
+    if st.button("Visualise Graph"):
+        with st.spinner("Generating visualisation..."):
             try:
                 graph_data = neo4j_connector.fetch_data(query)
                 

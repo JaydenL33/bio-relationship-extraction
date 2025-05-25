@@ -47,7 +47,7 @@ def check_duplicate_relationship(neo4j_connector, relationship):
         st.error(f"Error checking for duplicate relationship: {e}")
         return False  # Assume no duplicate if there's an error
 
-def build_graph_query(entity_type, relationship_type, keyword_filter, max_nodes):
+def build_graph_query(relationship_type, keyword_filter, max_nodes):
     """
     Build a Cypher query based on filter options.
     
@@ -65,10 +65,8 @@ def build_graph_query(entity_type, relationship_type, keyword_filter, max_nodes)
     
     # Add filters
     filters = []
-    if entity_type != "All":
-        filters.append(f"(n1.type = '{entity_type}' OR n2.type = '{entity_type}')")
     
-    if relationship_type != "All":
+    if relationship_type != "ALL":
         filters.append(f"type(r) = '{relationship_type}'")
     
     if keyword_filter:
