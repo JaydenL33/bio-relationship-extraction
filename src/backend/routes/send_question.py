@@ -1,6 +1,5 @@
 from fastapi import APIRouter, FastAPI, HTTPException, Body
 from pydantic import BaseModel
-from typing import Optional
 
 from services.query_documents import query_documents
 from services.llm import get_index
@@ -29,7 +28,7 @@ async def send_question(question: Question = Body(...)):
         print("\nExplanation:", response_dict["explanation"])
         print("\nSources:")
         for node in response.source_nodes:
-            print(f"- {node.node.metadata.get('file_name', 'Unknown')}: "
+            print(f"- {node.node.metadata.get('file_path', 'Unknown')}: "
                     f"Score: {node.score:.3f}")
         return {"response": response_dict, "sources": response.source_nodes}, 200
     except Exception as e:

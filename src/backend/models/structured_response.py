@@ -29,9 +29,9 @@ class RelationshipType(str, Enum):
     CONTAINS = "CONTAINS"
 
 class Relationship(BaseModel):
-    entity1: str = Field(..., description="First entity (e.g., chemical, organism)")
-    relation: RelationshipType = Field(..., description="Type of relationship")
-    entity2: str = Field(..., description="Second entity (e.g., chemical, organism)")
+    entity1: str = Field(..., description="First entity (e.g., organism, etc), which is responsible for the relation")
+    relation: RelationshipType = Field(..., description="Type of relationship, i.e. the action or connection between the entities")
+    entity2: str = Field(..., description="Second entity (e.g., chemical, metabolite, etc), which is the result of the relation")
 
 class BioMedicalResponse(BaseModel):
     relationships: List[Relationship] = Field(

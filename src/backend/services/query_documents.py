@@ -25,11 +25,12 @@ def query_documents(query_str: str, index: VectorStoreIndex = None):
         1. Extract relationships between entities using only the following relationship types:
         {relationship_types_str}
         2. Use exact entity names from the context, avoiding generic terms.
-        3. Link relationships as pairs or triplets where applicable:
+        3. Ensure that order of the entities is preserved, i.e. if an organism produces a chemical, the relationship should be `ORGANISM PRODUCES CHEMICAL`, not `CHEMICAL PRODUCES ORGANISM`.
+        4. Link relationships as pairs or triplets where applicable:
         - If an entity is isolated from an organism (`ISOLATED_FROM`), check if the same organism produces it (`PRODUCES`).
         - If a chemical is a metabolite (`METABOLITE_OF`) or precursor (`PRECURSOR_OF`), check for related biosynthetic relationships.
-        4. Provide a concise natural language explanation of why you extracted the relationships you did.
-        5. If the query’s answer or relationship type is not found, return an empty list of relationships and an explanation stating: "Not found in the provided context."
+        5. Provide a concise natural language explanation of why you extracted the relationships you did.
+        6. If the query’s answer or relationship type is not found, return an empty list of relationships and an explanation stating: "Not found in the provided context."
 
         **Context:**
         {{context_str}}
